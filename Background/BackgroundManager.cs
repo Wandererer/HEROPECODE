@@ -162,7 +162,7 @@ public class BackgroundManager : NEMonoBehaviour {
 		//needMoveDownSpeed = speed;
 		Game.Instance.gameScene.meter += speed;
 		for (int i = 0; i < backGroundList.Count; i++) {
-			backGroundList [i].MoveDown (speed * 30);
+			backGroundList [i].MoveDown ((int)speed * 30);
 
 		}
 
@@ -173,7 +173,7 @@ public class BackgroundManager : NEMonoBehaviour {
 
 		for(int i=0;i<ropeBackgrounds.Length;i++)
 		{
-			ropeBackgrounds[i].MoveDown(speed);
+			ropeBackgrounds[i].MoveDown((int)speed);
 		}
 	}
 		

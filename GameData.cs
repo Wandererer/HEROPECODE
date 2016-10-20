@@ -163,6 +163,7 @@ public class GameData {
 	public void MinusMoney(int money)
 	{
 		//돈 쓴 만 큼 저 
+	
 		GameSaveData saveData = LoadData ();
 		saveData.money -= money;
 		SaveData (saveData);

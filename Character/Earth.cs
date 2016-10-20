@@ -18,8 +18,8 @@ public class Earth : NEMonoBehaviour {
 	{
 		base.Awake ();
 		instance = this;
-		m_currHP = 2;
-		m_maxHP = 2;
+		m_currHP = 100;
+		m_maxHP = 100;
 	}
 
 	void Start()

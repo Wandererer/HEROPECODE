@@ -24,7 +24,10 @@ public class GameScene : NEMonoBehaviour {
 	int money; //돈 
 	int highScore; //최 대 점 수 
 
-	float maxMonsterSeconds=3f;//TODO: 나 중 에 시 간 초 받 아 와 서 설 정
+	float monsterSpawnTime; //몬 스 터 스 폰 시 간 
+
+
+	float maxMonsterSeconds=2f;//TODO: 나 중 에 시 간 초 받 아 와 서 설 정
     public float monsterTimeIncrease=0f; //아이템 시간 받아옴
     private float boosterDeltaTime=3f;//TODO: 나중에 부스터 시간 받아와서 입력
 
@@ -37,7 +40,9 @@ public class GameScene : NEMonoBehaviour {
 	private bool isHighScore;  //하 이 스 코 어 갱 신 했 나 ?
 	public bool isContinue=false; //계 속 하 기 클 릭 시 (돈 쓰 기 or 광 고 보 기 완 료 시 )
 	public bool isContinued=false; // 한번 계 속 하 기 되 었 는 지 ... 
-	GameObject UIroot;
+	private bool isMonsterInstantiate=false;
+	bool isSetMonsterTimeValue=false;
+	GameObject UIroot; //Ngui root
 
 	//UI용 게 임 오 브 젝 트 
 	public GameObject StartUI;
@@ -50,12 +55,15 @@ public class GameScene : NEMonoBehaviour {
 	public GameObject CoinObject;
 
 
-	private Character myCharacter;
+	private Character myCharacter; //내 캐릭터 
 
+	public Material lightningMaterial;//드 래 그 효 과 용 매 티 리 얼 
 
+	List<GameObject> rendererList=new List<GameObject>(); //랜 더 러 요 
+	List<Lightning> lightningList=new List<Lightning>(); // 랜 더 러 용 
 
 	UISlider MonsterSecondBar; //피 버 바 
-	private UILabel moneyUiLabel;
+	private UILabel moneyUiLabel;//돈 Label
 
 	Speed speed;
 
@@ -71,6 +79,8 @@ public class GameScene : NEMonoBehaviour {
 		gamePlayInstantiateObject[0]=(GameObject)Resources.Load(string.Format("Prefabs/{0}","Character"+game.gameInfo.CharacterNumber),typeof(GameObject));
 		UIroot = GameObject.Find ("UI Root");
 		speed = new Speed ();
+
+		monsterSpawnTime = Game.Instance.obstacleSpawnManager.PickNormalTime ();
 	}
 
 	public override void Awake ()
@@ -78,10 +88,13 @@ public class GameScene : NEMonoBehaviour {
 		base.Awake ();
         game.SetGameScene(this);
         gameState = GameState.Ready;
+		//Game.Instance.obstacleSpawnManager.Init ();
+		//Game.Instance.gameInfo.ResetGameData ();
 	}
 	
 	// Update is called once per frame
 	void Update () {
+		//Debug.Log(monsterSpawnTime);
 		switch(gameState)
 		{
 
@@ -92,23 +105,19 @@ public class GameScene : NEMonoBehaviour {
 			break;
 
 		case GameState.Play:
-
+			UpdateMonsterSpawnTime ();
 			MakeGameObjectInPlay (); //플 에 이 용  오 브 젝 트 생  
-			//myCharacter.SetSprite(); // test
-		
-			UpdateTime (); // 1 초 마 다 확 인 
+			UpdateTime ();  //시 간 공 식 업 데 이 트 하 거 나 몬 스 터 시 간 설 정 
 			CheckMonsterTime (); //몬 스 터 시 간 다 닳 았 는 지 확 인 
 			CheckHealth (); //HP 확ㅣ
 			CheckHighScore (); //하 이 스 코 어 넘 겼 는 지 확 인
             CheckBooster(); //부 스 터 효 과 발 동 하 였 는 지 확 인 
-			CheckItemMonsterIncereaseTime(); //몬 스 터 시 간 증 가 하 였 는 지 확 인 
-
 			break;
 
 		case GameState.Fall:
+			NoInputAndMoster (); //input 하 고 monster 안 하 게
 			SetIsKinemeticTrueForTrueToFalling (); //에 너 지 다 닳 아 서 떨 어 지 게 
 			CheckCharacterPositionYForEnd (); //일 정 이 하 내 려 오 면 END를 위 해 변 경
-			NoInputAndMoster (); //input 하 고 monster 안 하 게 
 			break;
 
 		case GameState.Pause:
@@ -197,20 +206,44 @@ public class GameScene : NEMonoBehaviour {
 		}
 	}
 
+	void UpdateMonsterSpawnTime()
+	{
+		//몬 스 터 스 폰 시 간 줄 어 듬 
+		if(!isMonsterInstantiate && !isBoosterOn)
+			monsterSpawnTime -= Time.deltaTime;
+
+		InstantiateSpawnMonster ();
+	}
+	void InstantiateSpawnMonster()
+	{
+		if(monsterSpawnTime<0 && !isMonsterInstantiate)
+		{
+			//몬 스 터 스 폰  시 킴
+			Game.Instance.inputManager.isMousePressed=true;
+			isMonsterInstantiate = true;
+			//Game.Instance.obstacleSpawnManager.SpawnNormalObstacles ();
+			//TODO 확 률 에 따 라 드 래 그 되 는 몬 스 터 도 생 성 되 게 
+			Game.Instance.obstacleSpawnManager.SpawnDragObstacles();
+			Game.Instance.obstacleSpawnManager.SetNormalTimeForNextSpawn ();
+			monsterSpawnTime = Game.Instance.obstacleSpawnManager.PickNormalTime ();
+		}
+	}
+
 	void UpdateTime()
 	{
 		//시 간 초 당 함 수 실 행 
-        game.obstacleSpawnManager.UpdateObstacles();
+		/* game.obstacleSpawnManager.UpdateObstacles();*/
 
 		if (IsExistObstacle ()) 
 		{
+			SetObstacleLifeTimeandMaxMonsterSeconds ();//몬스터 바 백 류 설 정 
 			SetSliderActiveByMonsterCount (); //몬 스 터 개 수 에 따 라 슬 라 이 더 나 타 남
 			SetMonsterTimeBarValue (); //몬 스 터 바 정 보 변 경
             obstacleLifetime -= Time.deltaTime;
 		} 
 		else
 		{
-            game.obstacleSpawnManager.UpdateSpawnInterval();
+			/*  game.obstacleSpawnManager.UpdateSpawnInterval();*/
 
             waitInputDeltaTime += Time.deltaTime;
 
@@ -229,6 +262,8 @@ public class GameScene : NEMonoBehaviour {
             speed.SetNormalSpeed (playTime);
         }
     }
+
+
 
     void UpdateAutoMove()
     {//자 동 올 라 가 는 상 태 일 경 
@@ -278,9 +313,9 @@ public class GameScene : NEMonoBehaviour {
 		//체 력 점 검
 		if(Earth.Instance.currHP<=0)
 		{
-			Game.Instance.inputManager.isMousePressed = false;	
 			NoInputAndMoster ();
 			Earth.Instance.currHP = 0;
+			Game.Instance.obstacleSpawnManager.ResetSpawnList ();
 			myCharacter.Fall();
 			myCharacter.gameObject.AddComponent<Rigidbody2D> ();
 			gameState = GameState.Fall;
@@ -357,6 +392,7 @@ public class GameScene : NEMonoBehaviour {
 	void NoInputAndMoster()
 	{
 		//몬 스 터 등 장 불 가 로 만 
+		Game.Instance.inputManager.isMousePressed = false;
 		Game.Instance.obstacleSpawnManager.obstacleSpawnDeltaTime = 0f;
 	}
 
@@ -381,6 +417,8 @@ public class GameScene : NEMonoBehaviour {
 				monsterTimeIncrease = 0f;
 				isMonsterTimeChange=false;
 			}
+			isMonsterInstantiate = false;
+			isSetMonsterTimeValue = false;
 			AttackedByObstacles (); // 몬 스 터 못 없 애 서 공 격 당 
 		}
 	}
@@ -389,17 +427,18 @@ public class GameScene : NEMonoBehaviour {
     {
 		//ui slider 없 애 버 림 
         SetUISliderDissapear ();//아이템 사용으로 monster 시간이 증가 하였으면
-        obstacleLifetime = 3f+monsterTimeIncrease;
     }
 
 	public void ResetValue()
 	{
         // 기본 변 수 들 초 기 
+		isSetMonsterTimeValue=false;
         game.gameInfo.Reset ();
+		isMonsterInstantiate = false;
 		isHighScore = false;
 		Earth.Instance.Reset ();
         Game.Instance.obstacleSpawnManager.obstacleSpawnDeltaTime=0;
-		obstacleLifetime = 3f+monsterTimeIncrease;
+		Game.Instance.obstacleSpawnManager.ResetSpawnList ();
         playTime=0f;
         speed.SetNormalSpeed (playTime);
 		isContinue = false;
@@ -413,7 +452,6 @@ public class GameScene : NEMonoBehaviour {
 		isHighScore = false;
 		Game.Instance.obstacleSpawnManager.obstacleSpawnDeltaTime=0;
 		Earth.Instance.Reset ();
-		obstacleLifetime = 3f+monsterTimeIncrease;
 		speed.SetNormalSpeed (playTime);
 	}
 
@@ -511,7 +549,7 @@ public class GameScene : NEMonoBehaviour {
             Game.Instance.gameInfo.FirstSetting(); //플레이 유아이 재 시작시 저장상태 불러옴
 			SoundManager.Instance.PlayBgmSound ("BGM",Game.Instance.gameInfo.BGM);
 			MonsterSecondBar = GameObject.Find ("MonsterSecondBar").GetComponent<UISlider> ();
-
+			SetUISliderDissapear ();
 		}
 	}
 
@@ -565,6 +603,16 @@ public class GameScene : NEMonoBehaviour {
 		//몬 스 터 시 간 바 재 설 
 		MonsterSecondBar.value = obstacleLifetime/ (maxMonsterSeconds+(float)monsterTimeIncrease);
 		MonsterSecondBar.GetComponentInChildren<UILabel> ().text = obstacleLifetime.ToString ("f1");
+	}
+
+	public void SetObstacleLifeTimeandMaxMonsterSeconds()
+	{
+		if (!isSetMonsterTimeValue) {
+			obstacleLifetime = obstacles.Count * 100f;
+			maxMonsterSeconds = obstacles.Count * 100f;
+			CheckItemMonsterIncereaseTime ();
+			isSetMonsterTimeValue = true;
+		}
 	}
 
 	public void CreateGameEndMenu()
@@ -703,8 +751,8 @@ public class GameScene : NEMonoBehaviour {
 			boosterDeltaTime -= Time.deltaTime;
 			if (boosterDeltaTime >= 0f)
 			{
-				Game.Instance.obstacleSpawnManager.obstacleSpawnDeltaTime = 0f;
 				Game.Instance.inputManager.isMousePressed = false;
+				Game.Instance.obstacleSpawnManager.obstacleSpawnDeltaTime = 0f;
 				BackgroundManager.Instance.MoveDown(speed.TapSpeed());    
 			}
             else
@@ -730,7 +778,7 @@ public class GameScene : NEMonoBehaviour {
 
 
 
-			obstacleLifetime =3f+monsterTimeIncrease;
+			obstacleLifetime =(obstacles.Count*100f)+monsterTimeIncrease;
 
 			myCharacter = GameObject.Find ("Character"+Game.Instance.gameInfo.CharacterNumber).GetComponent<Character> ();
             myCharacter.ReadyClimb();
@@ -810,6 +858,49 @@ public class GameScene : NEMonoBehaviour {
 	{
 		//BackGround Ngui 변 경 으 로 인 하 여 캐 릭 터 들 이 play시 다 시 보 이 게 
 		Camera.main.depth = 0;
+	}
+
+
+	public void AddLightAndRendererList(GameObject line,Lightning lightning)
+	{
+		lightningList.Add (lightning);
+		rendererList.Add (line);
+
+//		Debug.Log (rendererList.Count);
+	}
+
+	public void DestroyLightningAndResetRenderer()
+	{
+		for (int i = 0; i < lightningList.Count; i++) {
+			lightningList [i].Target = null;
+			Destroy (lightningList [i]);
+		}
+
+		lightningList.Clear ();
+
+		for (int i = 0; i < rendererList.Count; i++) {
+			DestroyImmediate (rendererList [i].gameObject.GetComponent<LineRenderer> ());
+
+		}
+
+
+	}
+
+	public void AddLineRenerer()
+	{
+		for (int i = 0; i < rendererList.Count; i++) {
+			DestroyImmediate (rendererList [i].gameObject.GetComponent<LineRenderer> ());
+			rendererList [i].AddComponent<LineRenderer> ();
+			rendererList [i].GetComponent<LineRenderer> ().SetWidth (0.1f, 0.1f);
+			rendererList [i].GetComponent<LineRenderer> ().material = lightningMaterial;
+			rendererList [i].GetComponent<LineRenderer> ().useLightProbes = false;
+			rendererList [i].GetComponent<LineRenderer> ().SetVertexCount (0);
+			rendererList [i].GetComponent<LineRenderer> ().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+			rendererList [i].GetComponent<LineRenderer> ().receiveShadows = false;
+			rendererList [i].GetComponent<LineRenderer> ().SetColors (Color.blue, Color.white);
+		}
+
+		rendererList.Clear ();
 	}
 
 
@@ -930,14 +1021,29 @@ public class GameScene : NEMonoBehaviour {
         {
             for (int i = 0; i < dragObstacles.Count; i++)
             {
+				//Debug.Log (dragObstacles [i].gameObject.name);
                 ShotObstacle(dragObstacles[i], false);
 				//TODO: 드 래 그 된 거 마 다 코 인 뜨 도 록
 				//InstantiateCoin(dragObstacles[i].transform.position);
             }
         }
+		//isSetMonsterTimeValue=false; //다 죽 이 면 밸 류 설 정 false 되 도 록 
 
         //TODO: 마지막 드래그 되는애가 죽으면 해당 포지션에 아이템 생기도록....
         // ItemSystemManager.Instance.SpawnItem(touchObstacle.transform.position);//아이템 스폰
+
+		/*	if(dragObstacles.Count == 0)
+		{
+			//다 죽였는데 아이템이 사용됬을 경우
+			if(monsterTimeIncrease>0)
+			{
+				monsterTimeIncrease = 0f;
+				isMonsterTimeChange=false;
+			}
+			isMonsterInstantiate = false;
+			isSetMonsterTimeValue = false; //몬 스 터 시 간 재 설 정 용ㅁ
+			DisappearUISlider();
+		}*/
 
     }
 
@@ -953,6 +1059,7 @@ public class GameScene : NEMonoBehaviour {
 
         // TODO : Tap에 의해 Obstacle이 맞으면 파괴하는 로직 실행.
         obstacles.Remove(touchObstacle);
+		Destroy (touchObstacle.GetComponent<BoxCollider> ());
 		SoundManager.Instance.PlayActionSound ("Explosion", Game.Instance.gameInfo.Effect);
 
         touchObstacle.StartDie();
@@ -966,13 +1073,15 @@ public class GameScene : NEMonoBehaviour {
                 monsterTimeIncrease = 0f;
                 isMonsterTimeChange=false;
             }
+			isMonsterInstantiate = false;
+			isSetMonsterTimeValue = false; //몬 스 터 시 간 재 설 정 용ㅁ
             DisappearUISlider();
         }
     }
 
     public void AddObstacle(Obstacle obstacle)
     {
-        obstacles.Add(obstacle);
+        obstacles.Add(obstacle); //적 데 이 터 추 가 
     }
 
     public void DestroyStartUI()

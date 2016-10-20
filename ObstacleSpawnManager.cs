@@ -25,85 +25,163 @@ public enum SpawnState
     Stop,
 }
 
+
+
 public class ObstacleSpawnManager
 {
-    private static readonly float Obstacle_Spawn_Min_Rate = 0.3f;
-    private static readonly float Obstacle_Spawn_Max_Rate = 0.6f;
-    private static readonly float Obstacle_Spawn_Increase_Rate = 0.08f;
-    private static readonly float Obstacle_Spawn_Interval = 4.0f;
+ 
+	private static readonly float Obstalce_Spawn_Normal_Time=4.0f;
+	private static  float Obstalce_Spawn_Normal_Min_Time=0f;
+	private static  float Obstalce_Spawn_Normal_Max_Time=3f;
+	private static readonly float Obstalce_Spawn_Minus_Time= -0.08f;
+	private static readonly float Obstalce_Spawn_Limit_Min_Time = -2f;
+	private static readonly float Obstalce_Spawn_Limit_Max_Time = 0.8f;
 
-    public Game game
-    {
-        get { return Game.Instance; }
-    }
-
-    private Queue<List<ObstacleData>> spawnQueue = new Queue<List<ObstacleData>>();
+	public Game game
+	{
+		get { return Game.Instance; }
+	}
+   
+	private MonsterPatternDB monsterDB;
+		
     private List<ObstacleData> currentSpawnObstacleDatas = new List<ObstacleData>();
     private float spawnUpdateTime;
-    public float obstacleSpawnDeltaTime;
-    private int obstacleSpawnLevel;
+    public float obstacleSpawnDeltaTime; //초 당 시 간 초 증 가 
+  //  private int obstacleSpawnLevel;
 
-    private SpawnState spawnState;
+    public SpawnState spawnState;
 
     public void AddObstacleData()
     {
 
     }
-
-	private string[] prefabNames = new []{"Squirrel", "Sun", "Moon", "Raindrop", "Planet", "Jesus",
-		"Dung", /*"Dragon",*/ "Ailien", "Angel", "Bat", "Bird", "Buddha", "Dove", "Rocket", "Thunder"};
-
-    public string GetRandomPrefabName()
-    {
-        int index = Random.Range(0, prefabNames.Length);
-        return prefabNames[index];
-    }
+		
 
     public void Init()
     {
-        List<ObstacleData> list = new List<ObstacleData>();
-
-        SafelyAddList(list, new ObstacleData(GetRandomPrefabName(), 1, 0, Random.Range(-2, 3), Random.Range(0, 2)));
-        SafelyAddList(list, new ObstacleData(GetRandomPrefabName(), 1, 0, Random.Range(-2, 3), Random.Range(0, 2)));
-
-        spawnQueue.Enqueue(list);
-
-        list = new List<ObstacleData>();
-
-        SafelyAddList(list, new ObstacleData(GetRandomPrefabName(), 1, 0, Random.Range(-2, 3), Random.Range(0, 2)));
-        SafelyAddList(list, new ObstacleData(GetRandomPrefabName(), 1, 0, Random.Range(-2, 3), Random.Range(0, 2)));
-        SafelyAddList(list, new ObstacleData(GetRandomPrefabName(), 1, 0, Random.Range(-2, 3), Random.Range(0, 2)));
-
-        spawnQueue.Enqueue(list);
-
-        list = new List<ObstacleData>();
-
-        SafelyAddList(list, new ObstacleData(GetRandomPrefabName(), 1, 0, Random.Range(-2, 3), Random.Range(0, 2)));
-        SafelyAddList(list, new ObstacleData(GetRandomPrefabName(), 1, 0, Random.Range(-2, 3), Random.Range(0, 2)));
-        SafelyAddList(list, new ObstacleData(GetRandomPrefabName(), 1, 0, Random.Range(-2, 3), Random.Range(0, 2)));
-        SafelyAddList(list, new ObstacleData(GetRandomPrefabName(), 1, 0, Random.Range(-2, 3), Random.Range(0, 2)));
-
-        spawnQueue.Enqueue(list);
+		monsterDB=new MonsterPatternDB();
+		monsterDB.Init();
+    }
 /*
-        list = new List<ObstacleData>();
-
-        SafelyAddList(list, new ObstacleData("Dung", 1, 0, Random.Range(-2, 6), Random.Range(0, 4)));
-        SafelyAddList(list, new ObstacleData("Dung", 1, 0.1f, Random.Range(-2, 6), Random.Range(0, 4)));
-        SafelyAddList(list, new ObstacleData("Dung", 1, 0.2f, Random.Range(-2, 6), Random.Range(0, 4)));
-
-        spawnQueue.Enqueue(list);
+	private static readonly float Obstalce_Spawn_Normal_Time=4.0f;
+	private static  float Obstalce_Spawn_Normal_Min_Time=0f;
+	private static  float Obstalce_Spawn_Normal_Max_Time=3f;
+	private static readonly float Obstalce_Spawn_Minus_Time=0.08f;
+	private static readonly float Obstalce_Spawn_Limit_Min_Time = -2f;
+	private static readonly float Obstalce_Spawn_Limit_Max_Time = 0.8f;
 */
-    }
+	public float PickNormalTime()
+	{
+		//몬 스 터 나 오 는 시 간 리 턴 
+		//4초 + 공 식 에 의 한 초 
+		return Obstalce_Spawn_Normal_Time+Random.Range (Obstalce_Spawn_Normal_Min_Time, Obstalce_Spawn_Normal_Max_Time);
+	}
 
-    private void SafelyAddList(List<ObstacleData> list, ObstacleData data)
-    {
-        if (list.FindIndex(x => x.sectorX == data.sectorX && x.sectorY == data.sectorY) == -1)
-        {
-            list.Add(data);
-        }
-    }
+	public void SetNormalTimeForNextSpawn()
+	{
+		//다 음 normal min,max time 을 깍고 제 한 된 크 기 만 큼 까 지 만 깍 이 도 록 함 
+		//최 소 시 간 설 정 
+		if ((Obstalce_Spawn_Normal_Min_Time + Obstalce_Spawn_Minus_Time) > Obstalce_Spawn_Limit_Min_Time)
+			Obstalce_Spawn_Normal_Min_Time += Obstalce_Spawn_Minus_Time;
+		else
+			Obstalce_Spawn_Normal_Min_Time = Obstalce_Spawn_Limit_Min_Time;
 
-    public void UpdateSpawnInterval()
+		//최 대 시 간 설 정 
+		if ((Obstalce_Spawn_Normal_Max_Time + Obstalce_Spawn_Minus_Time) > Obstalce_Spawn_Limit_Max_Time)
+			Obstalce_Spawn_Normal_Max_Time += Obstalce_Spawn_Minus_Time;
+		else
+			Obstalce_Spawn_Normal_Max_Time = Obstalce_Spawn_Limit_Max_Time;
+
+	}
+
+	public void SpawnNormalObstacles()
+	{
+		//몬 스 터 생 성 
+		currentSpawnObstacleDatas.AddRange(monsterDB.GetNormalMonsterPattern());//DB 에 몬 스 터 해 당 패 턴 리 스 트 가 져 옴
+
+		spawnUpdateTime += Time.deltaTime; //스 폰 시 간 차 이 나 는 거 
+		//Debug.Log (currentSpawnObstacleDatas.Count + "개수 ");
+		for (int i = 0; i < currentSpawnObstacleDatas.Count;)
+		{
+			//리 스 트 만 큼 몬 스 터 생 성 시 
+			ObstacleData data = currentSpawnObstacleDatas[i]; 
+
+			if (spawnUpdateTime >= data.spawnTime)
+			{
+				Vector3 position = new Vector3(data.sectorX, data.sectorY, -1); //생 성 위 치 
+				GameObject obj= GameObject.Instantiate(Resources.Load("Prefabs/Obstacles/" + data.prefabName), position,
+					Quaternion.identity) as GameObject; //생 성 시 
+				 
+				if (obj != null)
+				{
+					Obstacle obstacle = obj.GetComponent<Obstacle>();
+					//obstacle.Init(obstacleSpawnLevel);
+			
+					Game.Instance.gameScene.AddObstacle(obstacle);// 게 임 신 에 몬 스 터 개 수 증 가  
+				}
+
+				currentSpawnObstacleDatas.RemoveAt(i);//여 기 서 삭 제 
+			}
+			else
+			{
+				i++;
+			}
+		}
+
+		if (currentSpawnObstacleDatas.Count == 0)
+		{
+			//생 성 상 태 종 료 
+			spawnState = SpawnState.Stop;
+		}
+	}
+
+	public void ResetSpawnList()
+	{
+		monsterDB.ResetSpawnData ();
+	}
+
+	public void SpawnDragObstacles()
+	{
+		//몬 스 터 생 성 
+		currentSpawnObstacleDatas.AddRange(monsterDB.GetDragMonsterPattern());//DB 에 몬 스 터 해 당 패 턴 리 스 트 가 져 옴
+
+		spawnUpdateTime += Time.deltaTime; //스 폰 시 간 차 이 나 는 거 
+		//Debug.Log (currentSpawnObstacleDatas.Count + "개수 ");
+		for (int i = 0; i < currentSpawnObstacleDatas.Count;)
+		{
+			//리 스 트 만 큼 몬 스 터 생 성 시 
+			ObstacleData data = currentSpawnObstacleDatas[i]; 
+
+			if (spawnUpdateTime >= data.spawnTime)
+			{
+				Vector3 position = new Vector3(data.sectorX, data.sectorY, -1); //생 성 위 치 
+				GameObject obj= GameObject.Instantiate(Resources.Load("Prefabs/Obstacles/" + data.prefabName), position,
+					Quaternion.identity) as GameObject; //생 성 시 
+
+				if (obj != null)
+				{
+					Obstacle obstacle = obj.GetComponent<Obstacle>();
+					//obstacle.Init(obstacleSpawnLevel);
+					obstacle.isDragType=true;
+					Game.Instance.gameScene.AddObstacle(obstacle);// 게 임 신 에 몬 스 터 개 수 증 가  
+				}
+
+				currentSpawnObstacleDatas.RemoveAt(i);//여 기 서 삭 제 
+			}
+			else
+			{
+				i++;
+			}
+		}
+
+		if (currentSpawnObstacleDatas.Count == 0)
+		{
+			//생 성 상 태 종 료 
+			spawnState = SpawnState.Stop;
+		}
+	}
+
+	/*  public void UpdateSpawnInterval()
     {
         obstacleSpawnDeltaTime += Time.deltaTime;
 
@@ -118,7 +196,7 @@ public class ObstacleSpawnManager
 
             if (result)
             {
-                game.obstacleSpawnManager.SpawnObstacles ();
+                game.obstacleSpawnManager.SpawnObstacles (); //생 성 큐 에 삽 입 
             }
 
             obstacleSpawnLevel++;
@@ -131,11 +209,12 @@ public class ObstacleSpawnManager
         //Debug.Log (currentSpawnObstacleDatas.Count + "개수 ");
         for (int i = 0; i < currentSpawnObstacleDatas.Count;)
         {
+			//개 수 만 큼 리 스 트 에 집 어 넣 음 
             ObstacleData data = currentSpawnObstacleDatas[i];
 
             if (spawnUpdateTime >= data.spawnTime)
             {
-                Vector3 position = new Vector3(data.sectorX * 2, data.sectorY * 2, -1);
+                Vector3 position = new Vector3(data.sectorX * 2, data.sectorY * 2, -1); //생 성 위 치 
 				GameObject obj= GameObject.Instantiate(Resources.Load("Prefabs/Obstacles/" + data.prefabName), position,
                         Quaternion.identity) as GameObject;
 
@@ -143,10 +222,10 @@ public class ObstacleSpawnManager
                 {
                     Obstacle obstacle = obj.GetComponent<Obstacle>();
                     obstacle.Init(obstacleSpawnLevel);
-                    game.gameScene.AddObstacle(obstacle);
+                    game.gameScene.AddObstacle(obstacle);// 게 임 신 에 데 이 터 넘 김 
                 }
 
-                currentSpawnObstacleDatas.RemoveAt(i);
+                currentSpawnObstacleDatas.RemoveAt(i);//여 기 서 삭 제 
             }
             else
             {
@@ -156,27 +235,21 @@ public class ObstacleSpawnManager
 
         if (currentSpawnObstacleDatas.Count == 0)
         {
+			//생 성 상 태 종 
             spawnState = SpawnState.Stop;
         }
-    }
+    }*/
 
-    bool IsEnableSpawnTime()
+	/* bool IsEnableSpawnTime()
     {
+		//obstacleSpawnDeltaTime 시 간 이 4 초 보 다 크 면 몬 스 터 생 성 시 켜 야 함 
         if(obstacleSpawnDeltaTime >= Obstacle_Spawn_Interval)
         {
             return true;
         }
 
         return false;
-    }
+    }*/
 
-    public void SpawnObstacles()
-    {
-        List<ObstacleData> obstacleDatas = spawnQueue.Dequeue();
-        currentSpawnObstacleDatas.AddRange(obstacleDatas);
-        spawnQueue.Enqueue(obstacleDatas);
 
-        spawnUpdateTime = 0;
-        spawnState = SpawnState.Start;
-    }
 }

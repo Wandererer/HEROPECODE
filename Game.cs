@@ -23,14 +23,17 @@ public class Game
     public GameInfo gameInfo { get; private set; }
     public GameInputManager inputManager { get; private set; }
     public ObstacleSpawnManager obstacleSpawnManager { get; private set; }
+	public MonsterPatternDB monsterPatternDB{ get; private set;}
     public GameScene gameScene { get; private set; }
 	public SoundManager soundManager{ get; private set;}
+
+
     public Game()
     {
         gameInfo = new GameInfo();
         inputManager = new GameInputManager();
         obstacleSpawnManager = new ObstacleSpawnManager();
-        obstacleSpawnManager.Init();
+		obstacleSpawnManager.Init ();
     }
 
     public void SetGameScene(GameScene scene)

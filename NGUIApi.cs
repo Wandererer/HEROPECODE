@@ -144,11 +144,14 @@ public class NGUIApi : MonoBehaviour {
 	public void OnClickCoinMinuseButton()
 	{
 		Debug.Log ("CoinMinuse Click");
-		Game.Instance.gameScene.ResetValueForContinue ();
-		Game.Instance.gameScene.DestroyGameOverUI ();
-		Game.Instance.gameScene.RemoveObjectForRestartGame ();
-		Game.Instance.gameScene.isContinue = true;
-		Game.Instance.gameScene.gameState = GameState.Play;
+		if (Game.Instance.gameInfo.Money >= 10) {
+			Game.Instance.gameInfo.gameData.MinusMoney (10);
+			Game.Instance.gameScene.ResetValueForContinue ();
+			Game.Instance.gameScene.DestroyGameOverUI ();
+			Game.Instance.gameScene.RemoveObjectForRestartGame ();
+			Game.Instance.gameScene.isContinue = true;
+			Game.Instance.gameScene.gameState = GameState.Play;
+		}
 
 	}
 

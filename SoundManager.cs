@@ -161,7 +161,7 @@ public class SoundManager : NEMonoBehaviour {
 		if (key == null || key == "")
 			return;
 
-		Debug.Log (isOn);
+	//	Debug.Log (isOn);
 
         bool isReplite=false;
 		object sound = Resources.Load (string.Format ("Sounds/{0}", key), typeof(AudioClip));

@@ -1,11 +1,11 @@
-﻿using System;
+﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
+using System;
 
 /*게 임 터 치 또 는 클 릭 관 리 */
 
-public class GameInputManager {
+public class GameInputManager : MonoBehaviour {
 
     public Game game
     {
@@ -17,7 +17,12 @@ public class GameInputManager {
     private Vector2 lastTouchPosition;
     private Vector2 newTouchPosition;
     private Vector2 firstDragTouchPosition;
-    public bool isMousePressed;
+	private Vector3 offset;
+	private Vector3 screentPosition;
+
+	private bool isMouseDown=false;
+    public bool isMousePressed=true;
+	GameObject dragInterraction;
 
     private List<Obstacle> dragObstacles = new List<Obstacle>();
 
@@ -31,39 +36,31 @@ public class GameInputManager {
 	}
 
     private void UpdateMouseInput()
-    {
-        lastTouchPosition = newTouchPosition;
-        newTouchPosition = Input.mousePosition;
+	{
+		lastTouchPosition = newTouchPosition;
+		newTouchPosition = Input.mousePosition;
 
-        if (Input.GetMouseButtonDown(0))
-        {
-            OnTouchDown();
-        }
+			if (Input.GetMouseButtonDown (0)) {
 
-        if (Input.GetMouseButtonUp(0))
-        {
-            if (isMousePressed == false)
-            {
-                return;
-            }
+				OnTouchDown ();
+			}
 
-            isMousePressed = false;
+			if (Input.GetMouseButtonUp (0)) {
 
-            if (Vector2.Distance(firstDragTouchPosition, newTouchPosition) > 10f)
-            {
-                OnDragTouchUp();
-            }
-            else
-            {
-                OnTouchUp();
-            }
-        }
+				isMousePressed = false;
+		
+				if (Vector2.Distance (firstDragTouchPosition, newTouchPosition) > 10f) {
+					OnDragTouchUp ();
+				} else {
+					OnTouchUp ();
+				}
+			}
 
-        if (isMousePressed && lastTouchPosition != newTouchPosition)
-        {
-            OnDrag();
-        }
-    }
+			if (isMousePressed && lastTouchPosition != newTouchPosition) {
+				OnDrag ();
+			}
+
+	}
 
     private void UpdateTouchInput()
     {
@@ -72,7 +69,6 @@ public class GameInputManager {
             isMousePressed = false;
             return;
         }
-
         Touch touch = Input.GetTouch(0);
 
         lastTouchPosition = newTouchPosition;
@@ -125,6 +121,8 @@ public class GameInputManager {
             return;
         }
 
+		isMouseDown = true;
+
         firstDragTouchPosition = newTouchPosition;
 
         isMousePressed = true;
@@ -133,10 +131,14 @@ public class GameInputManager {
     private void OnTouchUp()
     {
         List<Obstacle> tempObstacleList=RaycastObstaclesFromScreenPos();
+		DeleteLineRendererFunction ();
+		isMouseDown = false;
+
         foreach (Obstacle obstacle in RaycastObstaclesFromScreenPos())
         {
             if (obstacle.isDragType)
             {
+				//Debug.Log ("Drag");
                 continue;
             }
 
@@ -146,7 +148,7 @@ public class GameInputManager {
             return;
         }
 
-
+		isMousePressed = false;
 
 		game.gameScene.StartTapInput();
 
@@ -159,31 +161,73 @@ public class GameInputManager {
         pos.z = -5;
         GameObject.Instantiate(Resources.Load(path), pos, Quaternion.identity);
     }
-
+		
     private void OnDrag()
     {
-
         foreach (Obstacle obstacle in RaycastObstaclesFromScreenPos())
         {
+			
             if (obstacle.isDragType == false)
             {
                 continue;
             }
 
             if (dragObstacles.Find(x => x.Equals(obstacle)) == null)
-            {
+			{		
+				dragInterraction = GameObject.Find ("DragInterraction");
+	
+				if (dragInterraction == null && isMouseDown) {
+					dragInterraction = (GameObject)Instantiate (Resources.Load ("prefabs/DragInterraction"), obstacle.gameObject.transform.position, Quaternion.identity);
+
+					obstacle.gameObject.AddComponent<Lightning> ();
+					Lightning light = obstacle.gameObject.GetComponent<Lightning> ();
+					light.Target = dragInterraction.transform;
+					light.Steps = 5;
+					light.Width = 1;
+					light.Delay = 0.1f;
+					isMouseDown = false;
+					dragInterraction.GetComponent<DragIntteration> ().light = light;
+					dragInterraction.name = "DragInterraction";
+
+					Game.Instance.gameScene.AddLightAndRendererList (obstacle.gameObject, light);
+				}
+
+
                 dragObstacles.Add(obstacle);
             }
+			else
+			{
+				//TODO : linerederer target 설 정 
+		
+			}
         }
+
+		if(dragInterraction!=null && !isMouseDown)
+		{
+			Vector3 pos = Camera.main.ScreenToWorldPoint(newTouchPosition);
+			pos.z = -1;
+			dragInterraction.transform.position = pos;
+		}
     }
+
+	private void DeleteLineRendererFunction()
+	{
+		game.gameScene.DestroyLightningAndResetRenderer ();
+		DestroyImmediate (dragInterraction);
+		game.gameScene.AddLineRenerer ();
+	}
 
     private void OnDragTouchUp()
     {
+		DeleteLineRendererFunction ();
+		isMouseDown = false;
         if (game.gameScene.IsExistObstacle() == false)
         {
+
             OnTouchUp();
             return;
         }
+	
 
         game.gameScene.ShotDragObstacles(dragObstacles);
         dragObstacles.Clear();
@@ -197,6 +241,7 @@ public class GameInputManager {
         foreach (RaycastHit hit in raycastHits)
         {
             Obstacle obstacle = hit.collider.gameObject.GetComponent<Obstacle>();
+
             if (obstacle != null && obstacle.isAlive)
             {
                 collisionObjects.Add(obstacle);
@@ -212,7 +257,7 @@ public class GameInputManager {
    {
        if(hit.collider!=null && hit.collider.tag=="Item")
        { //아이템 효과 추가
-           Debug.Log("Hit");
+         //  Debug.Log("Hit");
            Item item=hit.collider.GetComponent<Item>();
            int itemNumber=item.itemID;
            hit.collider.GetComponent<SpriteRenderer>().sprite=item.pressedSprite;
