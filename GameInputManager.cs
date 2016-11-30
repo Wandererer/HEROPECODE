@@ -22,9 +22,11 @@ public class GameInputManager : MonoBehaviour {
 
 	private bool isMouseDown=false;
     public bool isMousePressed=true;
-	GameObject dragInterraction;
 
-    private List<Obstacle> dragObstacles = new List<Obstacle>();
+	GameObject dragInterraction;
+	GameObject dragBackground;
+
+    public List<Obstacle> dragObstacles = new List<Obstacle>();
 
     public void UpdateInput()
 	{
@@ -41,7 +43,8 @@ public class GameInputManager : MonoBehaviour {
 		newTouchPosition = Input.mousePosition;
 
 			if (Input.GetMouseButtonDown (0)) {
-
+		//	Debug.Log ("touch");
+			//GameObject.Find("touch").GetComponent<UILabel>().text="touch";
 				OnTouchDown ();
 			}
 
@@ -56,7 +59,9 @@ public class GameInputManager : MonoBehaviour {
 				}
 			}
 
-			if (isMousePressed && lastTouchPosition != newTouchPosition) {
+		if (isMousePressed && lastTouchPosition != newTouchPosition) {
+//			Debug.Log ("Drag");
+			//GameObject.Find("touch").GetComponent<UILabel>().text="DRAG";
 				OnDrag ();
 			}
 
@@ -74,18 +79,24 @@ public class GameInputManager : MonoBehaviour {
         lastTouchPosition = newTouchPosition;
         newTouchPosition = touch.position;
 
+
         switch (touch.phase)
         {
             case TouchPhase.Began:
+			//GameObject.Find("touch").GetComponent<UILabel>().text="touch";
                 OnTouchDown();
                 break;
-            case TouchPhase.Moved:
-                if (isMousePressed == false)
-                {
-                    break;
-                }
+		case TouchPhase.Moved:
+			if (isMousePressed == false) {
+				break;
+			}
 
-                OnDrag();
+			if (Vector2.Distance (lastTouchPosition, newTouchPosition) > 10f) {
+				//GameObject.Find ("touch").GetComponent<UILabel> ().text = "DRAG";
+
+				OnDrag ();
+			}
+		
                 break;
             case TouchPhase.Ended:
 
@@ -134,6 +145,7 @@ public class GameInputManager : MonoBehaviour {
 		DeleteLineRendererFunction ();
 		isMouseDown = false;
 
+
         foreach (Obstacle obstacle in RaycastObstaclesFromScreenPos())
         {
             if (obstacle.isDragType)
@@ -147,6 +159,11 @@ public class GameInputManager : MonoBehaviour {
             SpawnEffect("Prefabs/HitEffect");
             return;
         }
+
+		if(GameObject.Find("DragBackground")!=null)//ddd
+		{
+			Destroy (GameObject.Find ("DragBackground"));
+		}
 
 		isMousePressed = false;
 
@@ -174,25 +191,14 @@ public class GameInputManager : MonoBehaviour {
 
             if (dragObstacles.Find(x => x.Equals(obstacle)) == null)
 			{		
+			//	Debug.Log (dragObstacles.Count);
 				dragInterraction = GameObject.Find ("DragInterraction");
 	
 				if (dragInterraction == null && isMouseDown) {
 					dragInterraction = (GameObject)Instantiate (Resources.Load ("prefabs/DragInterraction"), obstacle.gameObject.transform.position, Quaternion.identity);
 
-					obstacle.gameObject.AddComponent<Lightning> ();
-					Lightning light = obstacle.gameObject.GetComponent<Lightning> ();
-					light.Target = dragInterraction.transform;
-					light.Steps = 5;
-					light.Width = 1;
-					light.Delay = 0.1f;
-					isMouseDown = false;
-					dragInterraction.GetComponent<DragIntteration> ().light = light;
-					dragInterraction.name = "DragInterraction";
-
-					Game.Instance.gameScene.AddLightAndRendererList (obstacle.gameObject, light);
+					SetLightningEffect (obstacle);
 				}
-
-
                 dragObstacles.Add(obstacle);
             }
 			else
@@ -210,9 +216,30 @@ public class GameInputManager : MonoBehaviour {
 		}
     }
 
+
+	private void SetLightningEffect(Obstacle obs)
+	{
+		obs.gameObject.AddComponent<Lightning> ();
+		Lightning light = obs.gameObject.GetComponent<Lightning> ();
+		light.Target = dragInterraction.transform;
+		light.Steps = 5;
+		light.Width = 1;
+		light.Delay = 0.1f;
+		isMouseDown = false;
+		dragInterraction.GetComponent<DragIntteration> ().light = light;
+		dragInterraction.name = "DragInterraction";
+		SoundManager.Instance.PlayBgmSound ("Drag", Game.Instance.gameInfo.BGM,0.2f);
+		dragBackground = (GameObject)Instantiate (Resources.Load ("Prefabs/DragBackground"), new Vector3 (0, 0, -0.9f), Quaternion.identity);
+		dragBackground.name="DragBackground";
+		Game.Instance.gameScene.AddLightAndRendererList (obs.gameObject, light);
+
+	}
+
+
 	private void DeleteLineRendererFunction()
 	{
 		game.gameScene.DestroyLightningAndResetRenderer ();
+
 		DestroyImmediate (dragInterraction);
 		game.gameScene.AddLineRenerer ();
 	}
@@ -221,14 +248,15 @@ public class GameInputManager : MonoBehaviour {
     {
 		DeleteLineRendererFunction ();
 		isMouseDown = false;
+	
         if (game.gameScene.IsExistObstacle() == false)
         {
 
             OnTouchUp();
             return;
         }
-	
-
+		SoundManager.Instance.SetSpecificSoundStopBySoundName ("Drag");
+		Destroy (dragBackground);
         game.gameScene.ShotDragObstacles(dragObstacles);
         dragObstacles.Clear();
     }
@@ -257,11 +285,14 @@ public class GameInputManager : MonoBehaviour {
    {
        if(hit.collider!=null && hit.collider.tag=="Item")
        { //아이템 효과 추가
-         //  Debug.Log("Hit");
+          //Debug.Log("Hitcheckhit");
+			hit.collider.tag="ItemUse";
            Item item=hit.collider.GetComponent<Item>();
            int itemNumber=item.itemID;
            hit.collider.GetComponent<SpriteRenderer>().sprite=item.pressedSprite;
            ItemSystemManager.Instance.ItemEffectStart(itemNumber);
+			game.gameScene.PlayItemBoostUI(item.itemName);
+
 		   hit.collider.GetComponent<Item> ().SetIsUseFalse ();
        }
    }

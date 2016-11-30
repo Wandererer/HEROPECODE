@@ -29,6 +29,16 @@ public class Util {
 
 	}
 
+	public static void SaveBoolValue(string name, bool value)
+	{
+		PlayerPrefs.SetInt(name, value ? 1 : 0);
+	}
+
+	public static bool LoadBoolValue(string name)
+	{
+		return PlayerPrefs.GetInt(name) == 1;
+	}
+
 	public static void SaveBinaryFormat(string key, object data)
 	{
 		// 저 장 용 

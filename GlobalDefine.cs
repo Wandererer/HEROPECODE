@@ -6,13 +6,14 @@
 
 public enum GameState
 {
+	Title,
 	Ready,
+	Tutorial,
 	Play,
 	Pause,
 	Store,
 	Fall,
 	Credit,
-	Ad,
 	End,
 }
 

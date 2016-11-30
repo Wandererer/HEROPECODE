@@ -10,7 +10,7 @@ public class ItemSystemManager : NEMonoBehaviour {
         set { instance=value; }
     }
 
-    private static readonly float itemSpawnRate=0.3f;
+    private static readonly float itemSpawnRate=0.2f;
 
 
     public ItemDatabase itemDB=new ItemDatabase();
@@ -45,7 +45,7 @@ public class ItemSystemManager : NEMonoBehaviour {
     public int GenerateItemRandomInt()
     {
         //아이템 번호 가져 옴
-        int temp=Random.Range(0,4);
+        int temp=Random.Range(0,3);
         return temp;
     }
 
@@ -54,22 +54,18 @@ public class ItemSystemManager : NEMonoBehaviour {
 		//아 이 템 효 과 마 다 맞 는 거 시 작ㅁ
         switch(itemNum)
         {
-            case 0://몬스터 억제제
-                 Game.Instance.obstacleSpawnManager.obstacleSpawnDeltaTime=0;
-            break;
-
-            case 1://hp 증가
-                if(Earth.Instance.currHP<10)
+            case 0://hp 증가
+                if(Earth.Instance.currHP<3)
                 {
                     Earth.Instance.currHP++;
                 }
             break;
 
-            case 2://몬스터 터치 시간 증가
-                Game.Instance.gameScene.monsterTimeIncrease=2f;
+            case 1://몬스터 터치 시간 증가
+                Game.Instance.gameScene.monsterTimeIncrease=1f;
             break;
 
-            case 3: //부스터
+            case 2: //부스터
                 Game.Instance.gameScene.ActiveBoostState();
             break;
 
@@ -83,4 +79,14 @@ public class ItemSystemManager : NEMonoBehaviour {
     {
         Destroy(obj);
     }
+
+
+
+/*
+		#if UNITY_IOS
+			yield return new WaitForSeconds(6.0f);
+		#else
+			yield return new WaitForSeconds(2.0f);
+		#endif*/
+		
 }

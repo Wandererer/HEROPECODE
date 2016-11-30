@@ -13,6 +13,7 @@ public class GameInfo {
 	bool effect;//효 과 
 	//캐 릭 터 샀 나 안 샀 나 
 	bool second; // 두 번 째 캐 릭 터 샀 나 안 샀 나
+	bool third;
 
     public GameInfo()
     {
@@ -37,6 +38,7 @@ public class GameInfo {
 		bgm = gameData.saveData.Bgm;
 		effect = gameData.saveData.Effect;
 		second = gameData.saveData.SECOND;
+		third = gameData.saveData.THIRD;
 		selectCharacterNumber = gameData.saveData.SelectNumber;
 		characterNumber = gameData.saveData.CharacterNumber;
     }
@@ -85,6 +87,12 @@ public class GameInfo {
 	{
 		get { return second; }
 		set { second = value; }
+	}
+
+	public bool THIRD
+	{
+		get { return third;}
+		set { third = value;}
 	}
 
 	public int SelectNumber{

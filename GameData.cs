@@ -1,7 +1,7 @@
 ﻿using System.Xml;
 using System.Text;
 using System.IO;
-
+using UnityEngine;
 public class GameData {
 
 	//이 곳 에 서 x m l 관 련 도 불 러 올 수 있 도 록 함  
@@ -38,6 +38,7 @@ public class GameData {
 			saveData.Bgm = true;
 			saveData.Effect = true;
 			saveData.SECOND = false;
+			saveData.THIRD = false;
 			saveData.SelectNumber = 0;
 			saveData.CharacterNumber = 0;
 			return saveData;
@@ -56,6 +57,7 @@ public class GameData {
 		rootElement.SetAttribute ("Bgm", saveData.Bgm.ToString ());
 		rootElement.SetAttribute ("Effect", saveData.Effect.ToString ());
 		rootElement.SetAttribute ("SECOND", saveData.SECOND.ToString ());
+		rootElement.SetAttribute ("THIRD", saveData.THIRD.ToString ());
 		rootElement.SetAttribute ("Select", saveData.SelectNumber.ToString ());
 		rootElement.SetAttribute ("Character", saveData.CharacterNumber.ToString ());
 
@@ -124,6 +126,12 @@ public class GameData {
 			case "SECOND":
 				if (bool.TryParse (attr.Value, out isBool)) {
 					saveData.SECOND = isBool;
+				}
+				break;
+
+			case "THIRD":
+				if (bool.TryParse (attr.Value, out isBool)) {
+					saveData.THIRD = isBool;
 				}
 				break;
 
@@ -207,9 +215,19 @@ public class GameData {
 		switch(current)
 		{
 		case 1:
-			GameSaveData saveData = LoadData ();
-			saveData.SECOND = true;
-			SaveData (saveData);
+			{
+				GameSaveData saveData = LoadData ();
+				saveData.SECOND = true;
+				SaveData (saveData);
+			}
+			break;
+
+		case 2:
+			{
+				GameSaveData saveData = LoadData ();
+				saveData.THIRD = true;
+				SaveData (saveData);
+			}
 			break;
 
 		default:

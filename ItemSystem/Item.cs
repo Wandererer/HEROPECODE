@@ -2,7 +2,7 @@
 
 public class Item  : NEMonoBehaviour{
 	public int itemID; 
-	public string itemDesc; // 아 이 템 설 명 용
+	public string itemName;
 	//아 이 템 효 과 .... 나 중 에 생 성 
 	public ItemType itemType; // 아 이 템 타 입 용
     public Sprite pressedSprite;

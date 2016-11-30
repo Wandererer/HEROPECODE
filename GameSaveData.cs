@@ -10,6 +10,7 @@ public class GameSaveData {
 	bool bgmPlay; //bgm on off
 	//여 기 서 부 터 는 캐 릭 터 샀 나 안 샀 나 
 	bool second;
+	bool third;
 
 	public int highScore
 	{
@@ -47,6 +48,12 @@ public class GameSaveData {
 	{
 		get { return second; }
 		set { second = value; }
+	}
+
+	public bool THIRD
+	{
+		get { return third;}
+		set { third = value;}
 	}
 
 }

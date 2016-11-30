@@ -8,7 +8,7 @@ public class NEMonoBehaviour : MonoBehaviour {
         get { return Game.Instance; }
     }
 
-	int m_classIndex; //클래스 개수들
+
 
 	public NEMonoBehaviour(){}
 
@@ -35,7 +35,6 @@ public class NEMonoBehaviour : MonoBehaviour {
 		if(Application.isPlaying==false)
 			return;
 		#endif
-		NEMonoBehaviourManager.Instance.RemoveClass (m_classIndex);
 
 	}
 
@@ -53,11 +52,5 @@ public class NEMonoBehaviour : MonoBehaviour {
 	public bool IsActive()
 	{
 		return gameObject.activeSelf;
-	}
-
-	public int classIndex
-	{
-		get { return classIndex; }
-		set { classIndex = value; }
 	}
 }

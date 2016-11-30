@@ -34,10 +34,102 @@ public class NGUIApi : MonoBehaviour {
         }
     }
 
+
+	public void OnClickPositiveButtonInPopUp()
+	{
+		if(Game.Instance.gameScene.gameState==GameState.Pause)
+		{
+			Game.Instance.gameScene.DestroyPauseUIandPopUpUI ();
+			Game.Instance.gameScene.ResetObjectForReplyGameInPause();
+			//Debug.Log ("Replay Click");
+			Game.Instance.gameScene.ResetValue ();
+			Game.Instance.gameScene.CamearaDepthNormalForPlay();
+			Game.Instance.gameScene.gameState = GameState.Play;
+		}
+
+		else if(Game.Instance.gameScene.gameState==GameState.End && Game.Instance.gameScene.CoinClicked())
+		{
+			if (Game.Instance.gameInfo.Money >= 10) {
+				//Debug.Log ("gogogogogo");
+				
+				Game.Instance.gameScene.DestroyPopUpUI ();
+				Game.Instance.gameInfo.gameData.MinusMoney (10);
+				Game.Instance.gameScene.ResetValueForContinue ();
+				Game.Instance.gameScene.DestroyGameOverUI ();
+				Game.Instance.gameScene.RemoveObjectForRestartGame ();
+				Game.Instance.gameScene.isContinue = true;
+				Game.Instance.gameScene.gameState = GameState.Play;
+			}
+		}
+
+		else if(Game.Instance.gameScene.gameState==GameState.End && Game.Instance.gameScene.AdClicked() && Game.Instance.gameScene.IsAdFinished())
+		{
+			//Debug.Log("ad finished");
+			Game.Instance.gameScene.RemoveObjectForRestartGame ();
+			Game.Instance.gameScene.SetAdFinished (false);
+			Game.Instance.gameScene.DestroyPopUpUI ();
+			Game.Instance.gameScene.ResetValueForContinue ();
+			Game.Instance.gameScene.DestroyGameOverUI ();
+			Game.Instance.gameScene.isContinue = true;
+			Game.Instance.gameScene.gameState = GameState.Play;
+		}
+
+		else if(Game.Instance.gameScene.gameState==GameState.End && Game.Instance.gameScene.AdClicked())
+		{
+			//Debug.Log("ad clicked");
+			Game.Instance.gameScene.AdClickedFlase ();
+			Game.Instance.gameScene.DestroyPopUpUI ();
+		}
+
+		else if(Game.Instance.gameScene.gameState==GameState.End && Game.Instance.gameScene.NotEnoughCoin())
+		{
+			Game.Instance.gameScene.DestroyPopUpUI ();
+			Game.Instance.gameScene.NotEnoughCoinFalse ();
+		}
+
+		else if(Game.Instance.gameScene.gameState==GameState.End && Game.Instance.gameScene.IsFacebookClicked())
+		{
+			//Debug.Log("success share");
+			Game.Instance.gameScene.SetFacebookClicked (false);
+			Game.Instance.gameScene.DestroyPopUpUI ();
+		}
+	
+	}
+
+	public void OnClickNegativeButtonInPopUp()
+	{
+		if (Game.Instance.gameScene.gameState == GameState.Pause) 
+		{
+			//Game.Instance.gameScene.MovePauseUIToOriginPosition ();
+			Game.Instance.gameScene.DestroyPauseUIandPopUpUI ();
+		} 
+		else if (Game.Instance.gameScene.gameState == GameState.End && Game.Instance.gameScene.CoinClicked ()) {
+			//isCoinClicked = false;
+			Game.Instance.gameScene.DestroyPopUpUI ();
+		} 
+		if (Game.Instance.gameScene.gameState == GameState.End && Game.Instance.gameScene.AdClicked () && Game.Instance.gameScene.IsAdFinished ()) {
+			Game.Instance.gameScene.SetAdFinished (false);
+			Game.Instance.gameScene.DestroyPopUpUI ();
+		}
+
+		else if(Game.Instance.gameScene.gameState==GameState.End && Game.Instance.gameScene.AdClicked())
+		{
+			Game.Instance.gameScene.DestroyPopUpUI ();}
+	}
+	  
 	public void OnClickStartButton()
 	{
 		//스 타 트 버 튼 누 른 경 
-		Game.Instance.gameScene.gameState = GameState.Play;
+		bool isTutorial = Util.LoadBoolValue("Tutorial");
+		if (isTutorial == false)
+		{
+			Game.Instance.gameScene.gameState = GameState.Tutorial;
+		}
+		else
+		{
+			Game.Instance.gameScene.gameState = GameState.Play;
+		}
+
 		Game.Instance.gameScene.DestroyStartUI ();
 	}
 
@@ -48,7 +140,7 @@ public class NGUIApi : MonoBehaviour {
 	
         if(current.name=="BGM Button") //name으로 접근 안하면 토글버튼 멋대로 접근함
 		{
-            Debug.Log("BgmBUtton Clicked");
+            //Debug.Log("BgmBUtton Clicked");
 			if (current.value == false)
 			{
 				//비 활 성 화 상 태
@@ -88,38 +180,40 @@ public class NGUIApi : MonoBehaviour {
 	public void OnClickCharacterChangeButton()
 	{
 		//캐 릭 터 변 경 클 릭 시
-		Debug.Log ("CharacterChange Click");
+		//Debug.Log ("CharacterChange Click");
 		Game.Instance.gameScene.DestroyStartUI ();
 		Game.Instance.gameScene.gameState = GameState.Store;
 	}
 
 	public void OnClickCreditButton()
 	{
-		Debug.Log ("Credit Click");
+		//Debug.Log ("Credit Click");
 		Game.Instance.gameScene.DestroyStartUI ();
 		Game.Instance.gameScene.gameState = GameState.Credit;
 	}
 
+	public void OnClickCloseTutorialButton()
+	{
+		Game.Instance.gameScene.DestroyTutorialUI();
+		Util.SaveBoolValue("Tutorial", true);
+		Game.Instance.gameScene.gameState = GameState.Play;
+	}
+
 	public void OnClickPauseButton()
 	{
-		Debug.Log ("Pause Click");
-		Game.Instance.gameScene.SetPrevGameState (Game.Instance.gameScene.gameState);
-		if (Game.Instance.gameScene.gameState == GameState.Fall)
-			Game.Instance.gameScene.SetIsKinemeticTrueForPauseWhileFalling ();
+		if (Game.Instance.gameScene.IsExistObstacle ()==true || Earth.Instance.currHP<=0)
+			return;
 		Game.Instance.gameScene.CameraDepthFarForPause ();
+		SoundManager.Instance.SetSpecificSoundStopBySoundName ("BGM");
 		Game.Instance.gameScene.DestroyPlayUI ();
 		Game.Instance.gameScene.gameState = GameState.Pause;
 	}
 
 	public void OnClickReplayButtonInPause()
 	{
-		Game.Instance.gameScene.ResetObjectForReplyGameInPause();
-		Debug.Log ("Replay Click");
-        Game.Instance.gameInfo.Reset();
-		Game.Instance.gameScene.ResetValue ();
-		Game.Instance.gameScene.DestroyGamePauseUI ();
-		Game.Instance.gameScene.CamearaDepthNormalForPlay();
-        Game.Instance.gameScene.gameState = GameState.Play;
+		Game.Instance.gameScene.ChangePauseUiPosition ();
+		//Game.Instance.gameScene.DestroyGamePauseUI();
+		Game.Instance.gameScene.CreatePoPupUI ();
 
 	}
 
@@ -133,49 +227,52 @@ public class NGUIApi : MonoBehaviour {
 
 	public void OnClickContinueButtonInPauseUI()
 	{
-		Debug.Log ("Continue Click");
+		//Debug.Log ("Continue Click");
 
 		Game.Instance.gameScene.DestroyGamePauseUI ();
 		Game.Instance.gameScene.CamearaDepthNormalForPlay();
-		Game.Instance.gameScene.gameState = Game.Instance.gameScene.GetPrevGameState ();
+		Game.Instance.gameScene.gameState = GameState.Play;
 
 	}
 
 	public void OnClickCoinMinuseButton()
 	{
-		Debug.Log ("CoinMinuse Click");
-		if (Game.Instance.gameInfo.Money >= 10) {
-			Game.Instance.gameInfo.gameData.MinusMoney (10);
-			Game.Instance.gameScene.ResetValueForContinue ();
-			Game.Instance.gameScene.DestroyGameOverUI ();
-			Game.Instance.gameScene.RemoveObjectForRestartGame ();
-			Game.Instance.gameScene.isContinue = true;
-			Game.Instance.gameScene.gameState = GameState.Play;
+		//Debug.Log ("CoinMinuse Click");
+
+		if(Game.Instance.gameInfo.Money>=10)
+		Game.Instance.gameScene.CreatePoPupUIForCoinContinueMenu ();
+
+		else
+		{
+			Game.Instance.gameScene.CreatePopUpUIForNotEnoughCoin ();
+	
 		}
+
 
 	}
 
 	public void OnClickADButton()
 	{
-		Debug.Log ("AD Click");
-		Game.Instance.gameScene.CharacterRendreingOffForPopUp();
-		Game.Instance.gameScene.gameState = GameState.Ad;
-		Game.Instance.gameScene.DestroyGameOverUI ();
+		//Debug.Log ("AD Click");
+
+
+		Game.Instance.gameScene.AdClicedTrue ();
+		Game.Instance.gameScene.CharacterRendererOff ();
 		UnityAdsManager.Instance.ShowAd ();
 	}
 
 	public void OnClickShareButton()
 	{
-		Debug.Log ("Share Click");
+		//Debug.Log ("Share Click");
 		//FacebookManager.Instance.InitFaceBook ();
-		Game.Instance.gameScene.CharacterRendreingOffForPopUp();
+		Game.Instance.gameScene.SetFacebookClicked(true);
 		FacebookManager.Instance.Login ();
 		FacebookManager.Instance.Share ();
 	}
 
 	public void OnClickBackButton()
 	{
-		Debug.Log ("Back Click");
+		//Debug.Log ("Back Click");
 		Game.Instance.gameScene.DestroyStoreUI ();
 		Game.Instance.gameScene.gameState = GameState.Ready;
 
@@ -183,32 +280,37 @@ public class NGUIApi : MonoBehaviour {
 
 	public void OnClickSelectOrBuyButton()
 	{
-		Debug.Log ("SelectOrBuy Click");
+		//Debug.Log ("SelectOrBuy Click");
 		StoreManager.Instance.SelectOrBuy ();
 	}
 
 	public void OnClickLeftButton()
 	{
-		Debug.Log ("Left Click");
+		//Debug.Log ("Left Click");
 		StoreManager.Instance.Left ();
 	}
 
 	public void OnClickRightButton()
 	{
-		Debug.Log ("Right Click");
+		//Debug.Log ("Right Click");
 		StoreManager.Instance.Right ();
 	}
 
 	public void OnClickExitButton()
 	{
-		Debug.Log ("Exit Click");
+		/*Debug.Log ("Exit Click");
         Game.Instance.gameInfo.gameData.SaveData(Game.Instance.gameInfo.gameData.saveData);
-		Application.Quit ();
+		Application.Quit ();*/
+		Game.Instance.gameScene.ResetObjectForReplyGameInPause ();
+		SoundManager.Instance.SetPlaySoundStop ();
+		Game.Instance.gameScene.DestroyGamePauseUI ();
+		Game.Instance.gameScene.CamearaDepthNormalForPlay();
+		Game.Instance.gameScene.gameState=GameState.Ready;
 	}
 
     public void OnClickGoToStartMenu()
     {
-        Debug.Log("Start Menu");
+        //Debug.Log("Start Menu");
 		Game.Instance.gameScene.RemoveObjectForRestartGame ();
         Game.Instance.gameScene.gameState=GameState.Ready;
         Game.Instance.gameScene.DestroyGameOverUI ();
@@ -220,19 +322,9 @@ public class NGUIApi : MonoBehaviour {
 	{
 		FacebookManager.Instance.Login ();
 	}
-		
-
-	public void ExitAdResultMenu()
-	{
-		Game.Instance.gameScene.gameState = GameState.End;
-		Game.Instance.gameScene.DestroyAdResultUI ();
-		Game.Instance.gameScene.CharacterRenderingOnForExitPopUp ();
-		Game.Instance.gameScene.CreateGameEndMenu ();
-	}
 
 	public void ContinueInAdResult()
 	{
-		Game.Instance.gameScene.DestroyAdResultUI ();
 		Game.Instance.gameScene.gameState = GameState.Play;
 	}
 

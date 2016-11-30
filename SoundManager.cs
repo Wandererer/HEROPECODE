@@ -81,6 +81,21 @@ public class SoundManager : NEMonoBehaviour {
 		return temp;
 	}
 
+	public void SetSpecificSoundStopBySoundName(string name)
+	{
+		for(int i=0;i<audioSource.Length;i++)
+		{
+			if (audioSource[i].clip == null)
+				continue;
+			
+			if (audioSource [i].clip.name == name)
+			{
+				audioSource [i].Stop ();
+				break;
+			}
+		}
+	}
+
 	public void SetActionSoundTrue()
 	{
 		//액 션 사 운 드 다 시 
@@ -105,7 +120,7 @@ public class SoundManager : NEMonoBehaviour {
 				bgmList [i].volume = volume;
 			}
 		}
-        Debug.Log("Bgm True");
+        //Debug.Log("Bgm True");
 	}
 
 	public void SetPlaySoundStop()
@@ -212,7 +227,7 @@ public class SoundManager : NEMonoBehaviour {
 		SetAudioSourceClipNull ();
 	}
 
-	public void PlayBgmSound(string key, bool isOn)
+	public void PlayBgmSound(string key, bool isOn,float amount)
 	{
 		//배 경  사 운 드 가 져 와 서 실 행 똑 같 은 게 있 을 경 우 그 걸 시 작 
         if (key == null || key == "")
@@ -237,7 +252,7 @@ public class SoundManager : NEMonoBehaviour {
 
         //현재 볼륨이 On 상태이면 볼륨을 키고 아니면 볼륨을 끈상태로 끔
         if(isOn)
-			tempAudioSource.volume = volume;
+			tempAudioSource.volume = amount;
         else
             tempAudioSource.volume = 0;
 

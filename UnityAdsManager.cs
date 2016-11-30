@@ -12,8 +12,12 @@ public class UnityAdsManager : NEMonoBehaviour {
         get { return instance; }
         set { instance=value; }
     }
+	#if UNITY_IOS
+	private string gameId="1118783";
+	#else
+	private string gameId="1118782";
+	#endif
 
-	private string gameId="";
 	private List<GameObject> models;
     public override void Awake()
     {
@@ -25,10 +29,15 @@ public class UnityAdsManager : NEMonoBehaviour {
 
     public void ShowAd()
     {
-        if(Advertisement.IsReady())
+		if(Advertisement.IsReady("rewardedVideo"))
         {
 			Advertisement.Show("rewardedVideo",new ShowOptions(){resultCallback=HandleAdResult});
 			//Advertisement.Show(); //기 본 설 정 된 거
+		}
+
+		else
+		{
+			Game.Instance.gameScene.CratePopUpUiForAdIsNotReady ();
 		}
 
         /*
@@ -44,45 +53,31 @@ public class UnityAdsManager : NEMonoBehaviour {
 
     private void HandleAdResult(ShowResult result)
     {
-		initModelList ();
+		
         switch(result)
         {
             //결과 처리
 		case ShowResult.Finished:
 			Debug.Log ("Finish ads");
-			SetUIByAdResult (0);
-			GameObject.Find ("SuccessLabel").GetComponent<UILabel> ().text = "Ad Success";
+
+			Game.Instance.gameScene.CreatePoPupUIForAdResultFinished ();
 				break;
 
 		case ShowResult.Skipped:
 			Debug.Log ("skipped ads");
-			SetUIByAdResult (2);
-			GameObject.Find ("SkippedLabel").GetComponent<UILabel> ().text = "Ad Skipped";
+		
+			Game.Instance.gameScene.CratePopUpUiForAdResultSkipped ();
 				break;
 
 		case ShowResult.Failed:
 			Debug.Log ("Failed ads");
-			SetUIByAdResult (1);
-			GameObject.Find ("FailLabel").GetComponent<UILabel> ().text = "Ad Failed";
+			
+			Game.Instance.gameScene.CreatePopUpUiForAdResultFailed ();
 				break;
 		}
 
     }
 
 
-	public void initModelList()
-	{
-		Transform obj = GameObject.Find ("AdResultMenu").GetComponent<Transform> ();
 
-		foreach(Transform t in obj)
-		{
-			models.Add (t.gameObject);
-		}
-	}
-
-	private void SetUIByAdResult(int index)
-	{
-		models [index].SetActive(true);
-	}
-		
 }

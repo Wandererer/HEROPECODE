@@ -6,10 +6,10 @@ public struct ObstacleData
     public string prefabName;
     public int hp;
     public float spawnTime;
-    public int sectorX;
-    public int sectorY;
+    public float sectorX;
+    public float sectorY;
 
-    public ObstacleData(string prefabName, int hp, float spawnTime, int sectorX, int sectorY)
+    public ObstacleData(string prefabName, int hp, float spawnTime, float sectorX, float sectorY)
     {
         this.prefabName = prefabName;
         this.hp = hp;
@@ -36,6 +36,7 @@ public class ObstacleSpawnManager
 	private static readonly float Obstalce_Spawn_Minus_Time= -0.08f;
 	private static readonly float Obstalce_Spawn_Limit_Min_Time = -2f;
 	private static readonly float Obstalce_Spawn_Limit_Max_Time = 0.8f;
+	private int bossHp=0;
 
 	public Game game
 	{
@@ -99,6 +100,8 @@ public class ObstacleSpawnManager
 		//몬 스 터 생 성 
 		currentSpawnObstacleDatas.AddRange(monsterDB.GetNormalMonsterPattern());//DB 에 몬 스 터 해 당 패 턴 리 스 트 가 져 옴
 
+		//Debug.Log (monsterDB.GetSpawnNumber() + " normal");
+
 		spawnUpdateTime += Time.deltaTime; //스 폰 시 간 차 이 나 는 거 
 		//Debug.Log (currentSpawnObstacleDatas.Count + "개수 ");
 		for (int i = 0; i < currentSpawnObstacleDatas.Count;)
@@ -115,7 +118,22 @@ public class ObstacleSpawnManager
 				if (obj != null)
 				{
 					Obstacle obstacle = obj.GetComponent<Obstacle>();
+					//Debug.Log(monsterDB.GetSpawnNumber() +" dd");
 					//obstacle.Init(obstacleSpawnLevel);
+				
+					if(bossHp<4 && obstacle.isBoss==true)
+					{
+						//Debug.Log(monsterDB.GetSpawnNumber() +" test");
+						bossHp++;
+						obstacle.hp=bossHp;
+						SetHeartSpriteLineUp (bossHp);
+					}
+
+					else if(bossHp>=4)
+					{
+						obstacle.hp = 4;
+						SetHeartSpriteLineUp (4);
+					}
 			
 					Game.Instance.gameScene.AddObstacle(obstacle);// 게 임 신 에 몬 스 터 개 수 증 가  
 				}
@@ -133,7 +151,64 @@ public class ObstacleSpawnManager
 			//생 성 상 태 종 료 
 			spawnState = SpawnState.Stop;
 		}
+
+	
 	}
+
+	public void BossHpReset()
+	{
+		bossHp = 0;
+	}
+
+	private void SetHeartSpriteLineUp(int bossHP)
+	{
+		GameObject Heart = GameObject.FindGameObjectWithTag ("HeartSprite");
+
+
+		switch(bossHp)
+		{
+		case 1:
+			SpriteRendererOn (bossHP, Heart);
+			Heart.transform.localPosition = new Vector3 (2.45f, 0, 0);
+			break;
+
+		case 2:
+			SpriteRendererOn (bossHP, Heart);
+			Heart.transform.localPosition = new Vector3 (1.7f, 0, 0);
+			break;
+
+		case 3:
+			SpriteRendererOn (bossHP, Heart);
+			Heart.transform.localPosition = new Vector3 (0.9f, 0, 0);
+			break;
+
+		case 4:
+			SpriteRendererOn (bossHP, Heart);
+			Heart.transform.localPosition = new Vector3 (0.03f, 0, 0);
+			break;
+		}
+	}
+
+	private void SpriteRendererOn(int hp, GameObject Heart)
+	{
+		SpriteRenderer[] heartsSprite = Heart.GetComponentsInChildren<SpriteRenderer> ();
+
+		for(int i=0;i<hp;i++)
+		{
+			heartsSprite [i].enabled = true;
+		}
+	}
+
+	public int GetMonsterNormalPatternNumber()
+	{
+		return monsterDB.GetSpawnNumber ();
+	}
+
+	public int GetDragMonsterPatternNumber()
+	{
+		return monsterDB.GetDragSpawnNumber ();
+	}
+
 
 	public void ResetSpawnList()
 	{
@@ -144,6 +219,8 @@ public class ObstacleSpawnManager
 	{
 		//몬 스 터 생 성 
 		currentSpawnObstacleDatas.AddRange(monsterDB.GetDragMonsterPattern());//DB 에 몬 스 터 해 당 패 턴 리 스 트 가 져 옴
+
+		//Debug.Log (monsterDB.GetDragSpawnNumber () + " drag");
 
 		spawnUpdateTime += Time.deltaTime; //스 폰 시 간 차 이 나 는 거 
 		//Debug.Log (currentSpawnObstacleDatas.Count + "개수 ");
@@ -179,77 +256,11 @@ public class ObstacleSpawnManager
 			//생 성 상 태 종 료 
 			spawnState = SpawnState.Stop;
 		}
+
+		Game.Instance.gameScene.SetIsDragTrue ();
 	}
 
-	/*  public void UpdateSpawnInterval()
-    {
-        obstacleSpawnDeltaTime += Time.deltaTime;
 
-        if(IsEnableSpawnTime())
-        {
-            Debug.Log("obstacleSpawnLevel : " + obstacleSpawnLevel);
-            obstacleSpawnDeltaTime = 0;
-            float rate = Obstacle_Spawn_Min_Rate + Obstacle_Spawn_Increase_Rate * obstacleSpawnLevel;
-            rate = Mathf.Min(rate, Obstacle_Spawn_Max_Rate);
-
-            bool result = Random.Range (0, 1.0f) < rate;
-
-            if (result)
-            {
-                game.obstacleSpawnManager.SpawnObstacles (); //생 성 큐 에 삽 입 
-            }
-
-            obstacleSpawnLevel++;
-        }
-    }
-
-    public void UpdateObstacles()
-    {
-        spawnUpdateTime += Time.deltaTime;
-        //Debug.Log (currentSpawnObstacleDatas.Count + "개수 ");
-        for (int i = 0; i < currentSpawnObstacleDatas.Count;)
-        {
-			//개 수 만 큼 리 스 트 에 집 어 넣 음 
-            ObstacleData data = currentSpawnObstacleDatas[i];
-
-            if (spawnUpdateTime >= data.spawnTime)
-            {
-                Vector3 position = new Vector3(data.sectorX * 2, data.sectorY * 2, -1); //생 성 위 치 
-				GameObject obj= GameObject.Instantiate(Resources.Load("Prefabs/Obstacles/" + data.prefabName), position,
-                        Quaternion.identity) as GameObject;
-
-                if (obj != null)
-                {
-                    Obstacle obstacle = obj.GetComponent<Obstacle>();
-                    obstacle.Init(obstacleSpawnLevel);
-                    game.gameScene.AddObstacle(obstacle);// 게 임 신 에 데 이 터 넘 김 
-                }
-
-                currentSpawnObstacleDatas.RemoveAt(i);//여 기 서 삭 제 
-            }
-            else
-            {
-                i++;
-            }
-        }
-
-        if (currentSpawnObstacleDatas.Count == 0)
-        {
-			//생 성 상 태 종 
-            spawnState = SpawnState.Stop;
-        }
-    }*/
-
-	/* bool IsEnableSpawnTime()
-    {
-		//obstacleSpawnDeltaTime 시 간 이 4 초 보 다 크 면 몬 스 터 생 성 시 켜 야 함 
-        if(obstacleSpawnDeltaTime >= Obstacle_Spawn_Interval)
-        {
-            return true;
-        }
-
-        return false;
-    }*/
 
 
 }

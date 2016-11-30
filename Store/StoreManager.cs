@@ -27,6 +27,7 @@ public class StoreManager : NEMonoBehaviour {
 		maxModelCount = selectCharacter.GetMaxModelCount ();
 		Game.Instance.gameInfo.FirstSetting ();
 		selectCharacter.InitCharacterBoughtSecond (Game.Instance.gameInfo.SECOND);
+		selectCharacter.InitCharacterBoughtTHIRD (Game.Instance.gameInfo.THIRD);
 	}
 	
 	// Update is called once per frame
@@ -66,12 +67,16 @@ public class StoreManager : NEMonoBehaviour {
 			Game.Instance.gameInfo.gameData.SaveCharacterBuyInfo (currentIndex);
 			Game.Instance.gameInfo.gameData.ChangeTitleImageForSelectCharacter(currentIndex);
 			Game.Instance.gameScene.ChangeInstantiateCharacterSelectedNumber (currentIndex);
+			Game.Instance.gameScene.DestroyStoreUI ();
+			Game.Instance.gameScene.gameState = GameState.Ready;
 		}
 		else
 		{
 			//TODO: 현재 선 택 된 캐 릭 터로 앞 으 로 시 작함 
 			Game.Instance.gameInfo.gameData.ChangeTitleImageForSelectCharacter(currentIndex);
 			Game.Instance.gameScene.ChangeInstantiateCharacterSelectedNumber (currentIndex);
+			Game.Instance.gameScene.DestroyStoreUI ();
+			Game.Instance.gameScene.gameState = GameState.Ready;
 		}
 	}
 }

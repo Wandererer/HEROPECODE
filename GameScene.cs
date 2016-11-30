@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -19,6 +19,7 @@ public class GameScene : NEMonoBehaviour {
     private float waitInputDeltaTime;  //input 기 다 리 는 시 간 
 	private float fixTime=0.5f;
 
+	private Vector3 tempPositionForUI;//ui 임 시 위 치 
 
 
 	int money; //돈 
@@ -41,18 +42,29 @@ public class GameScene : NEMonoBehaviour {
 	public bool isContinue=false; //계 속 하 기 클 릭 시 (돈 쓰 기 or 광 고 보 기 완 료 시 )
 	public bool isContinued=false; // 한번 계 속 하 기 되 었 는 지 ... 
 	private bool isMonsterInstantiate=false;
-	bool isSetMonsterTimeValue=false;
+	private bool isSetMonsterTimeValue=false;
+	private bool isCoinClicked=false;
+	private bool isAdClicked=false;
+	private bool isAdFinished=false;
+	private bool isFacebookClicked=false;
+	private bool isNotEnoughCoinClicked=false;
+	private bool isDrag=false;
 	GameObject UIroot; //Ngui root
 
 	//UI용 게 임 오 브 젝 트 
+	public GameObject TitleUI;
+	public GameObject TutorialUI;
 	public GameObject StartUI;
 	public GameObject PlayUI;
 	public GameObject GameOverUI;
 	public GameObject PauseUI;
 	public GameObject StoreUI;
 	public GameObject AdUi;
+	public GameObject PopUpUi;
 	public GameObject CreditUI;
 	public GameObject CoinObject;
+
+
 
 
 	private Character myCharacter; //내 캐릭터 
@@ -70,7 +82,6 @@ public class GameScene : NEMonoBehaviour {
     private List<Obstacle> obstacles = new List<Obstacle>();
 
 
-    // Use this for initialization
     void Start () {
 		highScore = game.gameInfo.HighSocre;
 		money = game.gameInfo.Money;
@@ -87,9 +98,7 @@ public class GameScene : NEMonoBehaviour {
 	{
 		base.Awake ();
         game.SetGameScene(this);
-        gameState = GameState.Ready;
-		//Game.Instance.obstacleSpawnManager.Init ();
-		//Game.Instance.gameInfo.ResetGameData ();
+		gameState = GameState.Title;
 	}
 	
 	// Update is called once per frame
@@ -97,18 +106,15 @@ public class GameScene : NEMonoBehaviour {
 		//Debug.Log(monsterSpawnTime);
 		switch(gameState)
 		{
-
-
 		case GameState.Ready:
 			speed.SetNormalSpeed (playTime);
 			Game.Instance.gameInfo.FirstSetting ();
 			break;
 
 		case GameState.Play:
-			UpdateMonsterSpawnTime ();
 			MakeGameObjectInPlay (); //플 에 이 용  오 브 젝 트 생  
+			UpdateMonsterSpawnTime ();
 			UpdateTime ();  //시 간 공 식 업 데 이 트 하 거 나 몬 스 터 시 간 설 정 
-			CheckMonsterTime (); //몬 스 터 시 간 다 닳 았 는 지 확 인 
 			CheckHealth (); //HP 확ㅣ
 			CheckHighScore (); //하 이 스 코 어 넘 겼 는 지 확 인
             CheckBooster(); //부 스 터 효 과 발 동 하 였 는 지 확 인 
@@ -133,10 +139,6 @@ public class GameScene : NEMonoBehaviour {
 
 			break;
 
-		case GameState.Ad:
-
-			break;
-
 		case GameState.End:
 			SetCharacterPositionAndAnimForEnd (); //마 지 막 을 위 해 캐 릭 터 위 치 이 동 및 애 니 메 이 션 변 경 
 
@@ -153,7 +155,7 @@ public class GameScene : NEMonoBehaviour {
         if (gameState == GameState.Play)
         {
             game.inputManager.UpdateInput();
-			ChangeBackgroundSpriteFormeterWhenContinueClicked (); //continue누 를 시 배 경 화 면 meter에 맞 게 변 경 
+			ChangeBackgroundSpriteFormeterWhenContinueClicked ();
         }
     }
 
@@ -163,13 +165,19 @@ public class GameScene : NEMonoBehaviour {
 
 		switch(gameState)
 		{
+		case GameState.Title:
+			CreateTitleGUI();
+			break;
 		case GameState.Ready:
 			CreateGameStartGUI ();
+			break;
+		case GameState.Tutorial:
+			CreateTutorialGUI();
 			break;
 
 		case GameState.Play:
 			CreatePlayGUI (); //플 레 이 용 u i  생 성 
-
+			CheckMonsterTime (); //몬 스 터 시 간 다 닳 았 는 지 확 인 
 			UpdatePlayUIInfo ();// u i label  업 데 이 트
 
 
@@ -189,10 +197,6 @@ public class GameScene : NEMonoBehaviour {
 
 		case GameState.Credit:
 			CrateCreditUI (); // 만 든 사 람 들 UI 생ㅓ
-			break;
-
-		case GameState.Ad:
-			CreateAdResultMenu (); //광 고 결 과 화 면 생 성
 			break;
 
 		case GameState.End:
@@ -218,12 +222,19 @@ public class GameScene : NEMonoBehaviour {
 	{
 		if(monsterSpawnTime<0 && !isMonsterInstantiate)
 		{
+			DestroyItem ();
 			//몬 스 터 스 폰  시 킴
 			Game.Instance.inputManager.isMousePressed=true;
 			isMonsterInstantiate = true;
-			//Game.Instance.obstacleSpawnManager.SpawnNormalObstacles ();
-			//TODO 확 률 에 따 라 드 래 그 되 는 몬 스 터 도 생 성 되 게 
-			Game.Instance.obstacleSpawnManager.SpawnDragObstacles();
+
+			bool result = Random.Range (0f, 1.0f) < 0.7f;
+
+			if (result)
+				Game.Instance.obstacleSpawnManager.SpawnNormalObstacles ();
+			else 
+				Game.Instance.obstacleSpawnManager.SpawnDragObstacles ();
+			
+			
 			Game.Instance.obstacleSpawnManager.SetNormalTimeForNextSpawn ();
 			monsterSpawnTime = Game.Instance.obstacleSpawnManager.PickNormalTime ();
 		}
@@ -239,7 +250,9 @@ public class GameScene : NEMonoBehaviour {
 			SetObstacleLifeTimeandMaxMonsterSeconds ();//몬스터 바 백 류 설 정 
 			SetSliderActiveByMonsterCount (); //몬 스 터 개 수 에 따 라 슬 라 이 더 나 타 남
 			SetMonsterTimeBarValue (); //몬 스 터 바 정 보 변 경
+		
             obstacleLifetime -= Time.deltaTime;
+			
 		} 
 		else
 		{
@@ -314,6 +327,8 @@ public class GameScene : NEMonoBehaviour {
 		if(Earth.Instance.currHP<=0)
 		{
 			NoInputAndMoster ();
+			SoundManager.Instance.SetSpecificSoundStopBySoundName ("Drag");
+			DestroyDragInterraction ();
 			Earth.Instance.currHP = 0;
 			Game.Instance.obstacleSpawnManager.ResetSpawnList ();
 			myCharacter.Fall();
@@ -329,7 +344,6 @@ public class GameScene : NEMonoBehaviour {
 		{
 			SoundManager.Instance.SetPlaySoundStop (); //재 생 중 인 사 운 드 정 
 			RemoveObjectForEndGame ();
-			game.gameInfo.gameData.UpdateHighScore (highScore); // 저 장 
 			DestroyPlayUI ();
 			DestroyRigidBody2DForCharacter ();
 			myCharacter.ReadyFix ();//캐 릭 터 애 니 메 이 션 고 치 는 상 태 로 
@@ -337,26 +351,13 @@ public class GameScene : NEMonoBehaviour {
 		}
 	}
 
-	void ChangeBackgroundSpriteFormeterWhenContinueClicked()
-	{
-		//meter에 따 라 계 속 하 기 할 시 뒷 배 경 설 
-		if(isContinue==true)
-		{
-			BackgroundManager.Instance.SettingBackgroundForContinue (meter);
-			isContinued = true;
-			isContinue = false;
-		}
-	}
-
 	void SetCharacterPositionAndAnimForEnd()
 	{
 		//끝 화 면 으 로 갈 시 캐 릭 터 상 태 고 치 는 상 태 로 바 꾸 고 고 치 는 애 니 메 이 션 느 리 게 
-		Vector3 initPos = new Vector3 (0.5f, 3, 0);
+		Vector3 initPos = new Vector3 (0, 2.3f, 0);
 		if(initPos!=myCharacter.GetComponent<Transform>().position)
 		{
 			myCharacter.transform.position = initPos;
-			myCharacter.transform.localScale = new Vector3 (1.3f, 1.3f, 0);
-	
 		}
 		fixTime -= Time.deltaTime;
 
@@ -367,25 +368,7 @@ public class GameScene : NEMonoBehaviour {
 		
 	}
 
-	public void CharacterRendreingOffForPopUp()
-	{
-		//팝 업 창 때 문 에 랜 더 링 끔 
-		SpriteRenderer[] childs = myCharacter.GetComponentsInChildren<SpriteRenderer> ();
-		for (int i = 0; i < childs.Length; i++) 
-		{
-			childs [i].enabled = false;
-		}
-	}
 
-	public void CharacterRenderingOnForExitPopUp()
-	{
-		//팝 업 창 꺼 져 서 랜 더 링 
-		SpriteRenderer[] childs = myCharacter.GetComponentsInChildren<SpriteRenderer> ();
-		for (int i = 0; i < childs.Length; i++) 
-		{
-			childs [i].enabled = true;
-		}
-	}
 
 
 
@@ -432,14 +415,20 @@ public class GameScene : NEMonoBehaviour {
 	public void ResetValue()
 	{
         // 기본 변 수 들 초 기 
+		Game.Instance.gameInfo.FirstSetting();
+		highScore = Game.Instance.gameInfo.HighSocre;
 		isSetMonsterTimeValue=false;
         game.gameInfo.Reset ();
+		Game.Instance.obstacleSpawnManager.BossHpReset ();
+		Game.Instance.inputManager.dragObstacles.Clear ();
 		isMonsterInstantiate = false;
 		isHighScore = false;
 		Earth.Instance.Reset ();
         Game.Instance.obstacleSpawnManager.obstacleSpawnDeltaTime=0;
 		Game.Instance.obstacleSpawnManager.ResetSpawnList ();
         playTime=0f;
+		obstacleLifetime = 0f;
+		isMonsterTimeChange = false;
         speed.SetNormalSpeed (playTime);
 		isContinue = false;
 		isContinued = false;
@@ -450,9 +439,47 @@ public class GameScene : NEMonoBehaviour {
 	{
 		//계 속 하 기 할 시 일 부 정 보 초 기 화 
 		isHighScore = false;
+		isCoinClicked = false;
 		Game.Instance.obstacleSpawnManager.obstacleSpawnDeltaTime=0;
 		Earth.Instance.Reset ();
 		speed.SetNormalSpeed (playTime);
+	}
+
+	void CreateTitleGUI()
+	{
+		GameObject titleUI = GameObject.Find("TitleUI");
+		if (titleUI == null)
+		{
+			titleUI = Instantiate(TitleUI);
+			titleUI.name = TitleUI.name;
+			titleUI.transform.parent = UIroot.transform;
+			titleUI.GetComponent<Transform>().localScale = new Vector3(1, 1, 1);
+			StartCoroutine(DelayChangeGameState());
+		}
+	}
+
+	void CreateTutorialGUI()
+	{
+		GameObject tutorialUI = GameObject.Find("TutorialUI");
+		if (tutorialUI == null)
+		{
+			tutorialUI = Instantiate(TutorialUI);
+			tutorialUI.name = TutorialUI.name;
+			tutorialUI.transform.parent = UIroot.transform;
+			tutorialUI.GetComponent<Transform>().localScale = new Vector3(1, 1, 1);
+		}
+	}
+
+	private System.Collections.IEnumerator DelayChangeGameState()
+	{
+		#if UNITY_IOS
+		yield return new WaitForSeconds(6.0f);
+		#else
+		yield return new WaitForSeconds(2.0f);
+		#endif
+
+		DestroyTitleUI();
+		gameState = GameState.Ready;
 	}
 
 	public void CreateGameStartGUI()
@@ -468,10 +495,12 @@ public class GameScene : NEMonoBehaviour {
 			startUI.name = StartUI.name;
 			startUI.transform.parent = UIroot.transform;
 			startUI.GetComponent<Transform> ().localScale = new Vector3 (1, 1, 1);
+
 			UILabel highScoreLabel = GameObject.Find ("HighScoreLabel").GetComponent<UILabel> ();
-			highScoreLabel.text = highScore.ToString ();
+			highScoreLabel.text = Game.Instance.gameInfo.HighSocre.ToString ();
+
 			UILabel coinLabel=GameObject.Find ("Coin").GetComponent<UILabel> ();
-			coinLabel.text = money.ToString ();
+			coinLabel.text = Game.Instance.gameInfo.Money.ToString();
 
 			bool current = Game.Instance.gameInfo.BGM;
 
@@ -545,12 +574,39 @@ public class GameScene : NEMonoBehaviour {
 			coinLabel.text = money.ToString ();
 			UILabel hp = GameObject.Find ("HP").GetComponent<UILabel> ();
 			hp.text = Earth.Instance.currHP.ToString();
-
             Game.Instance.gameInfo.FirstSetting(); //플레이 유아이 재 시작시 저장상태 불러옴
-			SoundManager.Instance.PlayBgmSound ("BGM",Game.Instance.gameInfo.BGM);
 			MonsterSecondBar = GameObject.Find ("MonsterSecondBar").GetComponent<UISlider> ();
-			SetUISliderDissapear ();
+			SoundManager.Instance.PlayBgmSound ("BGM",Game.Instance.gameInfo.BGM,1.0f);
+			playUI.transform.FindChild("ItemBoost").GetComponent<UILabel>().enabled = false;
+			//SetUISliderDissapear ();
 		}
+	}
+
+	public void PlayItemBoostUI(string itemName)
+	{
+		GameObject boostObject = GameObject.Find("ItemBoost");
+		boostObject.GetComponent<UILabel>().text = itemName;
+		boostObject.GetComponent<UILabel>().enabled = true;
+		StartCoroutine(DelayHideBoostUI(1.0f));
+	}
+
+	public void playMonsterDragUI()
+	{
+		GameObject boostObject = GameObject.Find("ItemBoost");
+		if (isDrag==true && obstacles[0].isDragType==true) {
+			boostObject.GetComponent<UILabel> ().text = "Drag";
+			boostObject.GetComponent<UILabel> ().enabled = true;
+			isDrag = false;
+			StartCoroutine (DelayHideBoostUI (obstacleLifetime / 2f));
+		}
+	}
+
+	private System.Collections.IEnumerator DelayHideBoostUI(float seconds)
+	{
+		yield return new WaitForSeconds(seconds);
+
+		GameObject.Find("ItemBoost").GetComponent<UILabel>().enabled = false;
+		yield return null;
 	}
 
 	void SetSliderActiveByMonsterCount()
@@ -572,6 +628,7 @@ public class GameScene : NEMonoBehaviour {
 
 	void SetUISliderDissapear()
 	{
+		//MonsterSecondBar = GameObject.Find ("MonsterSecondBar").GetComponent<UISlider> ();
 		MonsterSecondBar.GetComponent<UISlider> ().enabled = false;
 		UISprite[] sprite = MonsterSecondBar.GetComponentsInChildren<UISprite> ();
 		sprite [0].enabled = false;
@@ -603,13 +660,30 @@ public class GameScene : NEMonoBehaviour {
 		//몬 스 터 시 간 바 재 설 
 		MonsterSecondBar.value = obstacleLifetime/ (maxMonsterSeconds+(float)monsterTimeIncrease);
 		MonsterSecondBar.GetComponentInChildren<UILabel> ().text = obstacleLifetime.ToString ("f1");
+		if(obstacles[0].isDragType==true)
+			playMonsterDragUI ();
 	}
 
 	public void SetObstacleLifeTimeandMaxMonsterSeconds()
 	{
 		if (!isSetMonsterTimeValue) {
-			obstacleLifetime = obstacles.Count * 100f;
-			maxMonsterSeconds = obstacles.Count * 100f;
+
+			if( obstacles[0].isDragType==false && obstacles[0].isBoss==false)
+			{
+				obstacleLifetime = 1.4f;
+				maxMonsterSeconds = 1.4f;
+			}
+			else if(obstacles[0].isDragType==true && obstacles[0].isBoss==false)
+			{
+				obstacleLifetime = 1.4f;
+				maxMonsterSeconds = 1.4f;
+			}
+			else if( obstacles[0].isBoss==true)
+			{
+				obstacleLifetime = 1.0f;
+				maxMonsterSeconds = 1.0f;
+			}
+				
 			CheckItemMonsterIncereaseTime ();
 			isSetMonsterTimeValue = true;
 		}
@@ -627,16 +701,19 @@ public class GameScene : NEMonoBehaviour {
 			moneyUiLabel=GameObject.Find ("CoinLabel").GetComponent<UILabel> ();
 			UILabel meterLabel = GameObject.Find ("MeterLabel").GetComponent<UILabel> ();
 			meterLabel.text = meter.ToString ("f1")+"m";
-		
+
 			moneyUiLabel.text =money.ToString ();
 		
 			if(isHighScore)
 			{
 				GameObject.Find ("HighScore").SetActive (true);
+				SoundManager.Instance.PlayActionSound ("HighScore",Game.Instance.gameInfo.Effect);
+				game.gameInfo.gameData.UpdateHighScore (highScore); // 저 장 
 			}
 			else
 			{
 				GameObject.Find ("HighScore").SetActive (false);
+				SoundManager.Instance.PlayActionSound ("Ending",Game.Instance.gameInfo.Effect);
 			}
 
 			if(isContinued)
@@ -647,25 +724,317 @@ public class GameScene : NEMonoBehaviour {
 					dissapearList [i].SetActive (false);
 				}
 
-				GameObject movableObject = GameObject.Find ("Movable");
-				movableObject.transform.localPosition = new Vector3 (0, -640, 0);
+				Transform movableObject = gameOverUI.transform.FindChild ("ContinueLabel");
+				movableObject.gameObject.GetComponent<UILabel>().text="포기하지마! 다시 해보는거야!";
+				movableObject.localPosition = new Vector3 (29, -391, 0);
 			}
 
 		}
 	}
 
-	public void CreateAdResultMenu()
+	public void CreatePoPupUI()
 	{
-		GameObject adResultUI = GameObject.Find ("AdResultMenu");
-		if(adResultUI==null)
+		GameObject popUpUI = GameObject.Find ("PopUpUI");
+		if(popUpUI==null)
 		{
-			adResultUI = Instantiate (AdUi);
-			adResultUI.name = AdUi.name;
+			popUpUI = Instantiate (PopUpUi);
+			popUpUI.name = PopUpUi.name;
 		}
 	}
 
 
-	void CreatePauseGUI()
+	public void CreatePoPupUIForCoinContinueMenu()
+	{
+		GameObject popUpUI = GameObject.Find ("PopUpUI");
+		if(popUpUI==null)
+		{
+			popUpUI = Instantiate (PopUpUi);
+			GameObject label = GameObject.Find ("ChangeLabel");
+			label.GetComponent<UILabel>().text="10코인을 쓰시겠습니까?";
+			popUpUI.name = PopUpUi.name;
+			CharacterRendererOff ();
+			isCoinClicked = true;
+		}
+	}
+
+	public void CreatePopUpUIForNotEnoughCoin()
+	{
+		
+		GameObject popUpUI = GameObject.Find ("PopUpUI");
+		if(popUpUI==null)
+		{
+			popUpUI = Instantiate (PopUpUi);
+			GameObject label = GameObject.Find ("ChangeLabel");
+			label.GetComponent<UILabel>().text="코인이 부족 합니다";
+			popUpUI.name = PopUpUi.name;
+
+			PopUpChildButtonSettingFalseAndMove ();
+			isNotEnoughCoinClicked = true;
+			CharacterRendererOff ();
+		}
+
+	}
+
+	public void CratePopUpUiForAdIsNotReady()
+	{
+		GameObject popUpUI = GameObject.Find ("PopUpUI");
+		if(popUpUI==null)
+		{
+			popUpUI = Instantiate (PopUpUi);
+			GameObject label = GameObject.Find ("ChangeLabel");
+			label.GetComponent<UILabel>().text="광고가 준비중 입니다";
+			popUpUI.name = PopUpUi.name;
+
+			PopUpChildButtonSettingFalseAndMove ();
+
+			CharacterRendererOff ();
+			isCoinClicked = true;
+		}
+	}
+
+	public void CreatePoPupUIForAdResultFinished()
+	{
+		GameObject popUpUI = GameObject.Find ("PopUpUI");
+		if(popUpUI==null)
+		{
+			popUpUI = Instantiate (PopUpUi);
+			GameObject label = GameObject.Find ("ChangeLabel");
+			label.GetComponent<UILabel>().text="계속 하시겠습니까?";
+			popUpUI.name = PopUpUi.name;
+			isAdFinished = true;
+		}
+	}
+
+	public void CreatePopUiForFacebookLoginFailed()
+	{
+		GameObject popUpUI = GameObject.Find ("PopUpUI");
+		if(popUpUI==null)
+		{
+			popUpUI = Instantiate (PopUpUi);
+			GameObject label = GameObject.Find ("ChangeLabel");
+			label.GetComponent<UILabel>().text="FACEBOOK 로그인 실패";
+			popUpUI.name = PopUpUi.name;
+
+			PopUpChildButtonSettingFalseAndMove ();
+
+			CharacterRendererOff ();
+		}
+	}
+
+	public void CreatePopUiForFacebookShareFailed()
+	{
+		GameObject popUpUI = GameObject.Find ("PopUpUI");
+		if(popUpUI==null)
+		{
+			popUpUI = Instantiate (PopUpUi);
+			GameObject label = GameObject.Find ("ChangeLabel");
+			label.GetComponent<UILabel>().text="FACEBOOK 공유 실패";
+			popUpUI.name = PopUpUi.name;
+
+			PopUpChildButtonSettingFalseAndMove ();
+
+			CharacterRendererOff ();
+		}
+	}
+
+	public void CreatePopUiForFacebookShareError()
+	{
+		GameObject popUpUI = GameObject.Find ("PopUpUI");
+		if(popUpUI==null)
+		{
+			popUpUI = Instantiate (PopUpUi);
+			GameObject label = GameObject.Find ("ChangeLabel");
+			label.GetComponent<UILabel>().text="FACEBOOK 공유 에러";
+			popUpUI.name = PopUpUi.name;
+
+			PopUpChildButtonSettingFalseAndMove ();
+
+			CharacterRendererOff ();
+		}
+	}
+
+
+
+	public void CreatePopUiForFacebookShareSuccess()
+	{
+		GameObject popUpUI = GameObject.Find ("PopUpUI");
+		if(popUpUI==null)
+		{
+			popUpUI = Instantiate (PopUpUi);
+			GameObject label = GameObject.Find ("ChangeLabel");
+			label.GetComponent<UILabel>().text="FACEBOOK 공유 완료";
+			popUpUI.name = PopUpUi.name;
+
+			PopUpChildButtonSettingFalseAndMove ();
+
+			CharacterRendererOff ();
+		}
+	}
+
+	public void CratePopUpUiForAdResultSkipped()
+	{
+		GameObject popUpUI = GameObject.Find ("PopUpUI");
+		if(popUpUI==null)
+		{
+			PopUpChildButtonSettingFalseAndMove ();
+			popUpUI = Instantiate (PopUpUi);
+			GameObject label = GameObject.Find ("ChangeLabel");
+			label.GetComponent<UILabel>().text="광고가 넘겨졌습니다";
+			popUpUI.name = PopUpUi.name;
+			isAdFinished = true;
+		}
+	}
+
+	public void CreatePopUpUiForAdResultFailed()
+	{
+		GameObject popUpUI = GameObject.Find ("PopUpUI");
+		if(popUpUI==null)
+		{
+			PopUpChildButtonSettingFalseAndMove ();
+			popUpUI = Instantiate (PopUpUi);
+			GameObject label = GameObject.Find ("ChangeLabel");
+			label.GetComponent<UILabel>().text="광고가 취소됬습니다";
+			popUpUI.name = PopUpUi.name;
+			isAdFinished = true;
+		}
+	}
+
+	public bool IsAdFinished()
+	{
+		return isAdFinished;
+	}
+
+	public void SetAdFinished(bool result)
+	{
+		isAdFinished = result;
+	}
+
+	public bool IsFacebookClicked()
+	{
+		return isFacebookClicked;
+	}
+
+	public void SetFacebookClicked(bool result)
+	{
+		isFacebookClicked = result;
+	}
+
+	private void PopUpChildButtonSettingFalseAndMove()
+	{
+		GameObject negaButton = GameObject.Find ("NegativeButton");
+		negaButton.SetActive (false);
+
+		GameObject postButton = GameObject.Find ("PositiveButton");
+		postButton.GetComponent<Transform> ().position = new Vector3 (0, postButton.GetComponent<Transform> ().position.y, 0);
+
+	}
+
+	public bool CoinClicked()
+	{
+		return isCoinClicked;
+	}
+
+	public bool AdClicked()
+	{
+		return isAdClicked;
+	}
+
+	public void AdClicedTrue()
+	{
+		isAdClicked = true;
+	}
+
+	public void AdClickedFlase()
+	{
+		isAdClicked = false;
+	}
+
+	public void NotEnoughCoinFalse()
+	{
+		isNotEnoughCoinClicked = false;
+	}
+
+	public bool NotEnoughCoin()
+	{
+		return isNotEnoughCoinClicked;
+	}
+
+	public void CharacterRendererOff()
+	{
+		GameObject obj = GameObject.FindGameObjectWithTag ("Character");
+		if(obj!=null)
+		{
+			SpriteRenderer[] sprites = obj.GetComponentsInChildren<SpriteRenderer> ();
+			for(int i=0;i<sprites.Length;i++)
+			{
+				sprites [i].enabled = false;
+			}
+		}
+	}
+
+	public void CharacterRendererOn()
+	{
+		GameObject obj = GameObject.FindGameObjectWithTag ("Character");
+		if(obj!=null)
+		{
+			SpriteRenderer[] sprites = obj.GetComponentsInChildren<SpriteRenderer> ();
+			for(int i=0;i<sprites.Length;i++)
+			{
+				sprites [i].enabled = true;
+			}
+		}
+	}
+
+
+	public void ChangePauseUiPosition()
+	{
+		GameObject obj=GameObject.Find("PauseUI");
+		tempPositionForUI = obj.transform.localPosition;
+		//Debug.Log ("Here " + tempPositionForUI);
+		Vector3 temp = new Vector3 (4000f, 0, 0);
+		obj.transform.localPosition = temp;
+	}
+
+	public void DestroyPopUpUI()
+	{
+		GameObject obj=GameObject.Find("PopUpUI");
+		if (obj != null) {
+			DestroyImmediate (obj);
+			CharacterRendererOn ();
+		}
+	}
+
+	public void DestroyPauseUIandPopUpUI()
+	{
+		GameObject obj=GameObject.Find("PauseUI");
+		DestroyImmediate (obj);
+		obj=GameObject.Find("PopUpUI");
+		DestroyImmediate (obj);
+		isCoinClicked = false;
+	}
+
+	public void MovePauseUIToOriginPosition()
+	{
+		DestroyImmediate (PopUpUi);
+		GameObject obj=GameObject.Find("PauseUI");
+		obj.transform.localPosition = tempPositionForUI;
+		//Debug.Log ("Here2 " + obj.transform.localPosition);
+		tempPositionForUI = new Vector3(0,0,0);
+	}
+
+
+	void ChangeBackgroundSpriteFormeterWhenContinueClicked()
+	{
+		if(isContinue==true)
+		{
+			BackgroundManager.Instance.SettingBackgroundForContinue (meter);
+			isContinued = true;
+			isContinue = false;
+		}
+	}
+
+
+	public void CreatePauseGUI()
 	{
 		GameObject puaseUI = GameObject.Find ("PauseUI");
 		if(puaseUI==null)
@@ -714,11 +1083,12 @@ public class GameScene : NEMonoBehaviour {
 		GameObject storeUI = GameObject.Find ("StoreUI");
 		if(storeUI==null)
 		{
+			Game.Instance.gameInfo.FirstSetting ();
 			storeUI = Instantiate (	StoreUI);
 			storeUI.name = 	StoreUI.name;
 			storeUI.transform.parent = UIroot.transform;
 			moneyUiLabel = GameObject.Find ("MoneyLabel").GetComponent<UILabel> ();
-			moneyUiLabel.text = money.ToString ();
+			moneyUiLabel.text = Game.Instance.gameInfo.Money.ToString ();
 			gameObject.AddComponent<StoreManager> ();
 			storeUI.GetComponent<Transform> ().localScale = new Vector3 (1, 1, 1);
 		}
@@ -776,10 +1146,6 @@ public class GameScene : NEMonoBehaviour {
 				removeObejct.Add (obj.name);
 			}
 
-
-
-			obstacleLifetime =(obstacles.Count*100f)+monsterTimeIncrease;
-
 			myCharacter = GameObject.Find ("Character"+Game.Instance.gameInfo.CharacterNumber).GetComponent<Character> ();
             myCharacter.ReadyClimb();
 
@@ -794,7 +1160,9 @@ public class GameScene : NEMonoBehaviour {
     public void ResetObjectForReplyGameInPause()
     {
 		RemoveObjectForRestartGame();
-        MakeGameObjectInPlay();
+		ResetValue ();
+		//SetUISliderDissapear ();
+      //  MakeGameObjectInPlay();
     }
 
 	public void RemoveObjectForRestartGame()
@@ -807,14 +1175,27 @@ public class GameScene : NEMonoBehaviour {
 
 			isInstantObject = false;
             removeObejct.Clear();
-			DestroyItemForEndGame ();
+			DestroyItem ();
 		}
+			
+
+		if(obstacles.Count>0)
+		{
+			for (int i = 0; i < obstacles.Count; i++) {
+				Destroy (obstacles [i].gameObject);
+			}
+
+			obstacles.Clear ();
+		}
+
+
+
 
 
 	}
 
 
-	void DestroyItemForEndGame()
+	void DestroyItem()
 	{
 		//죽 었 을 경 우 아 이 템 이 남 아 있 으 면 삭 
 		GameObject itemObj = GameObject.FindGameObjectWithTag ("Item");
@@ -843,8 +1224,27 @@ public class GameScene : NEMonoBehaviour {
 			}
 			removeStringList.Clear ();
 
-			DestroyItemForEndGame ();
+			DestroyItem ();
 		}
+	}
+
+	public void DestroyDragInterraction()
+	{
+		GameObject obj = GameObject.Find ("DragBackground");
+		if(obj!=null)
+		{
+			Destroy (obj);
+		}
+
+		obj= GameObject.Find ("DragInterraction");
+		if(obj!=null)
+		{
+			Destroy (obj);
+		}
+
+		rendererList.Clear ();
+		lightningList.Clear ();
+
 	}
 
 
@@ -869,6 +1269,11 @@ public class GameScene : NEMonoBehaviour {
 //		Debug.Log (rendererList.Count);
 	}
 
+	public void AddLightinginList(Lightning lightning)
+	{
+		lightningList.Add (lightning);
+	}
+
 	public void DestroyLightningAndResetRenderer()
 	{
 		for (int i = 0; i < lightningList.Count; i++) {
@@ -879,25 +1284,27 @@ public class GameScene : NEMonoBehaviour {
 		lightningList.Clear ();
 
 		for (int i = 0; i < rendererList.Count; i++) {
-			DestroyImmediate (rendererList [i].gameObject.GetComponent<LineRenderer> ());
+			if (rendererList [i] == null)
+				continue;
+			DestroyImmediate (rendererList [i].GetComponent<LineRenderer> ());
 
 		}
-
 
 	}
 
 	public void AddLineRenerer()
 	{
 		for (int i = 0; i < rendererList.Count; i++) {
-			DestroyImmediate (rendererList [i].gameObject.GetComponent<LineRenderer> ());
-			rendererList [i].AddComponent<LineRenderer> ();
-			rendererList [i].GetComponent<LineRenderer> ().SetWidth (0.1f, 0.1f);
-			rendererList [i].GetComponent<LineRenderer> ().material = lightningMaterial;
-			rendererList [i].GetComponent<LineRenderer> ().useLightProbes = false;
-			rendererList [i].GetComponent<LineRenderer> ().SetVertexCount (0);
-			rendererList [i].GetComponent<LineRenderer> ().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-			rendererList [i].GetComponent<LineRenderer> ().receiveShadows = false;
-			rendererList [i].GetComponent<LineRenderer> ().SetColors (Color.blue, Color.white);
+			DestroyImmediate (rendererList [i].GetComponent<LineRenderer> ());
+			LineRenderer lineRenderer = rendererList [i].AddComponent<LineRenderer> ();
+			lineRenderer.SetWidth (0.5f, 0.3f);
+			lineRenderer.SetColors (Color.yellow, Color.yellow);
+			lineRenderer.material = lightningMaterial;
+			lineRenderer.useLightProbes = false;
+			lineRenderer.SetVertexCount (0);
+			lineRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+			lineRenderer.receiveShadows = false;
+
 		}
 
 		rendererList.Clear ();
@@ -982,21 +1389,27 @@ public class GameScene : NEMonoBehaviour {
     public bool IsExistObstacle()
     {
 		//적 이 있 나 없 나 
+
         return obstacles.Count != 0;
     }
 
 	void AttackedByObstacles()
 	{
 		//시 간 동 안 몬 스 터 죽 이 지 못 하 면 체 력 깍 임 
-		Earth.Instance.currHP -= obstacles.Count;
+
+
+		Earth.Instance.currHP -= GetSumOfMonsterHp ();
 
         if(Earth.Instance.currHP<=0)//게임 끝났음에도 몬스터가 내려오는걸 방지 하기 위해
         {
+			SoundManager.Instance.SetSpecificSoundStopBySoundName ("Drag");
             for(int i=0;i<obstacles.Count;i++)
             {
                 Obstacle temp=obstacles[i];
                 Destroy(temp.gameObject);
             }
+
+			DestroyDragInterraction ();
 
         }
 
@@ -1005,10 +1418,24 @@ public class GameScene : NEMonoBehaviour {
 			for (int i = 0; i < obstacles.Count; i++) {
 				obstacles[i].StartFallDown();
 			}
+			Game.Instance.inputManager.dragObstacles.Clear ();
 		}
 
 		obstacles.Clear ();
 	}
+
+
+	int GetSumOfMonsterHp()
+	{
+		int sum = 0;
+		for(int i=0;i<obstacles.Count;i++)
+		{
+			sum += obstacles [i].hp;
+		}
+
+		return sum;
+	}
+
 
     public void ShotDragObstacles(List<Obstacle> dragObstacles)
     {
@@ -1017,6 +1444,7 @@ public class GameScene : NEMonoBehaviour {
 
         // TODO : 준비된 Obstacle들이 모두 dragObstacles에 있는지 체크 후 맞으면 파괴하는 로직 실행.
 
+		SoundManager.Instance.SetSpecificSoundStopBySoundName ("Drag");
         if (dragObstacles.Count == obstacles.Count(x => x.isDragType))
         {
             for (int i = 0; i < dragObstacles.Count; i++)
@@ -1027,23 +1455,7 @@ public class GameScene : NEMonoBehaviour {
 				//InstantiateCoin(dragObstacles[i].transform.position);
             }
         }
-		//isSetMonsterTimeValue=false; //다 죽 이 면 밸 류 설 정 false 되 도 록 
 
-        //TODO: 마지막 드래그 되는애가 죽으면 해당 포지션에 아이템 생기도록....
-        // ItemSystemManager.Instance.SpawnItem(touchObstacle.transform.position);//아이템 스폰
-
-		/*	if(dragObstacles.Count == 0)
-		{
-			//다 죽였는데 아이템이 사용됬을 경우
-			if(monsterTimeIncrease>0)
-			{
-				monsterTimeIncrease = 0f;
-				isMonsterTimeChange=false;
-			}
-			isMonsterInstantiate = false;
-			isSetMonsterTimeValue = false; //몬 스 터 시 간 재 설 정 용ㅁ
-			DisappearUISlider();
-		}*/
 
     }
 
@@ -1054,16 +1466,17 @@ public class GameScene : NEMonoBehaviour {
         {
             myCharacter.Attack();
         }
-        if(obstacles.Count==1)
+		if(obstacles.Count==1 && touchObstacle.hp<=1)
             ItemSystemManager.Instance.SpawnItem(touchObstacle.transform.position);//아이템 스폰
 
         // TODO : Tap에 의해 Obstacle이 맞으면 파괴하는 로직 실행.
-        obstacles.Remove(touchObstacle);
-		Destroy (touchObstacle.GetComponent<BoxCollider> ());
-		SoundManager.Instance.PlayActionSound ("Explosion", Game.Instance.gameInfo.Effect);
 
-        touchObstacle.StartDie();
-		InstantiateCoin (touchObstacle.transform.position);
+		touchObstacle.hp--;
+
+	
+		CheckObstacleHp (touchObstacle);
+
+      
 
         if(obstacles.Count == 0)
         {
@@ -1079,14 +1492,84 @@ public class GameScene : NEMonoBehaviour {
         }
     }
 
+	private void CheckObstacleHp(Obstacle obs)
+	{
+		GameObject Heart = GameObject.FindGameObjectWithTag ("HeartSprite");
+
+		if (obs.hp < 1) {
+			if(obs.isBoss==true)
+			{
+				DeleteBossHpSprite (obs.hp,Heart);
+			}
+
+			obstacles.Remove (obs);
+			Destroy (obs.GetComponent<BoxCollider> ());
+			SoundManager.Instance.PlayActionSound ("Explosion", Game.Instance.gameInfo.Effect);
+			obs.StartDie();
+			InstantiateCoin (obs.transform.position);
+		}
+
+		else
+		{
+			Debug.Log ("hpasdfpsdfjsadfkj");
+			if(Game.Instance.obstacleSpawnManager.GetMonsterNormalPatternNumber()==14)
+			{
+				SoundManager.Instance.PlayActionSound ("hitSound", Game.Instance.gameInfo.Effect);
+				DeleteBossHpSprite (obs.hp,Heart);
+			}
+			//TODO sound add and hp- string
+		}
+
+	}
+
+	private void DeleteBossHpSprite(int hp, GameObject Heart)
+	{
+		
+		SpriteRenderer[] heartsSprite = Heart.GetComponentsInChildren<SpriteRenderer> ();
+
+		heartsSprite [hp].enabled = false;
+
+		switch(hp)
+		{
+
+		case 1:
+			Heart.transform.localPosition = new Vector3 (2.45f, 0, 0);
+			break;
+
+		case 2:
+			Heart.transform.localPosition = new Vector3 (1.7f, 0, 0);
+			break;
+
+		case 3:
+			Heart.transform.localPosition = new Vector3 (0.9f, 0, 0);
+			break;
+		}
+
+	}
+
     public void AddObstacle(Obstacle obstacle)
     {
         obstacles.Add(obstacle); //적 데 이 터 추 가 
     }
 
+	public void SetIsDragTrue()
+	{
+		isDrag = true;
+	}
+
+	public void DestroyTitleUI()
+	{
+		DestroyImmediate(GameObject.Find("TitleUI"));
+	}
+
     public void DestroyStartUI()
 	{
 		DestroyImmediate (GameObject.Find("StartUI"));
+	}
+
+	public void DestroyTutorialUI()
+	{
+		DestroyImmediate(GameObject.Find("TutorialUI"));
 	}
 
     public void DestroyPlayUI()
@@ -1098,7 +1581,7 @@ public class GameScene : NEMonoBehaviour {
     public void DestroyGameOverUI()
 	{
 		//Destroy (GameObject.Find ("GameOverUI"));
-		Debug.Log("Destroy game over ui");
+		//Debug.Log("Destroy game over ui");
 		Destroy( GameObject.Find ("GameOverUI"));
 	}
 
@@ -1109,18 +1592,18 @@ public class GameScene : NEMonoBehaviour {
 
     public void DestroyStoreUI()
 	{
-		Destroy (gameObject.GetComponent<StoreManager> ());
 		DestroyImmediate(GameObject.Find("StoreUI"));
 	}
-
-	public void DestroyAdResultUI()
-	{
-		DestroyImmediate (GameObject.Find("AdResultMenu"));
-	}
+		
 
 	public void DestroyCreditUI()
 	{
 		DestroyImmediate (GameObject.Find ("CreditUI"));
+	}
+
+	public void DestroyLineRendererWhenConnected()
+	{
+
 	}
 
 	public void ChangeTitleMenuCharacter()

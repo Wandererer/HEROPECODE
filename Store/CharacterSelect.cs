@@ -5,10 +5,10 @@ public class CharacterSelect : MonoBehaviour {
 
 	private List<GameObject> models;
 	private int selectionIndex=0; //기본 인덱스
-	private string[] characterName={ "Male","Female"}; //각 index마 다 캐 릭 터 이 름 
+	private string[] characterName={ "Male","Female","Siri"}; //각 index마 다 캐 릭 터 이 름 
 	private string[] characterDescription = { "Male\nCharacter","Female\nCharacter" }; //각 index 마 다 캐 릭 터 설 명 
-	private bool[] isCharacterBought = { true,false }; //캐 릭 터 샀 나 안 샀 나 
-	private int[] priceOfCharacter = { 0, 100 }; // 캐 릭 터 당 가 
+	private bool[] isCharacterBought = { true,false,false }; //캐 릭 터 샀 나 안 샀 나 
+	private int[] priceOfCharacter = { 0, 100 ,1000}; // 캐 릭 터 당 가 
 
 	private GameObject characterSelectObject; //캐 릭 터 선 택 UI
 	private GameObject characterBuyObject;// 캐 릭 터 사 기 UI
@@ -60,6 +60,11 @@ public class CharacterSelect : MonoBehaviour {
 	public void InitCharacterBoughtSecond(bool Second)
 	{
 		isCharacterBought [1] = Second;
+	}
+
+	public void InitCharacterBoughtTHIRD(bool third)
+	{
+		isCharacterBought [2] = third;
 	}
 
 	public void MoveIndex(int index)

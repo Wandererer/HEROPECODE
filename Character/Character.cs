@@ -10,6 +10,7 @@ public class CharacterSprite
     public bool enableMove;
     private bool isPlaying;
     private int currentIndex;
+	private int maxCharacter = 3;
 
     public bool IsEnableMoveAction()
     {
@@ -21,7 +22,7 @@ public class CharacterSprite
 
         if(front.Length > 1)
         {
-            return currentIndex % 2 == 0;
+			return currentIndex % maxCharacter == 0;
         }
 
         return true;
@@ -163,7 +164,11 @@ public class Character : MonoBehaviour
     private IEnumerator RecoveryClimb()
     {
         yield return new WaitForSeconds(0.3f);
-        if(currentSprite != climb)
+		if(currentSprite==boost)
+		{
+			
+		}
+        else if(currentSprite != climb)
         {
             ReadyClimb();
         }

@@ -18,8 +18,8 @@ public class Earth : NEMonoBehaviour {
 	{
 		base.Awake ();
 		instance = this;
-		m_currHP = 100;
-		m_maxHP = 100;
+		m_currHP = 1;
+		m_maxHP = 3;
 	}
 
 	void Start()
@@ -32,23 +32,10 @@ public class Earth : NEMonoBehaviour {
 		base.OnDestroy ();
 	}
 
-
-	public void SetDamage(int damage)
-	{
-		if(m_currHP<0)
-		{
-			return;
-		}
-
-		m_currHP -= damage;
-		m_hpBar.sliderValue = (float)m_currHP / (float)m_maxHP;
-	}
-		
-
 	public void Reset()
 	{
-		m_currHP = 2;
-		m_maxHP = 2;
+		m_currHP = 1;
+		m_maxHP = 3;
 	}
 
 	public int currHP

@@ -6,8 +6,10 @@ public class Obstacle : MonoBehaviour
     private static readonly float Fall_Down_Speed = 10;
     public Sprite[] alive;
     public Sprite[] die;
+	public int hp;
 
     public bool isDragType;
+	public bool isBoss;
 
     public bool isAlive
     {

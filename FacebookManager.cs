@@ -25,6 +25,45 @@ public class FacebookManager : NEMonoBehaviour {
 		//원 래 는 init 여 기 에 
     }
 
+	private IEnumerator TakeScreenshot()
+	{
+		yield return new WaitForEndOfFrame();
+
+		/*var snap = new Texture2D(Screen.width, Screen.height, TextureFormat.RGB24, false);
+		snap.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0);
+		snap.Apply();
+		var screenshot = snap.EncodeToPNG();
+
+		int i = UnityEngine.Random.Range (0, 2);
+
+		var wwwForm = new WWWForm();
+		wwwForm.AddBinaryData("image", screenshot, "picture.png");
+		wwwForm.AddField ("name", "HEROPE");
+
+		FB.API("me/photos", HttpMethod.POST, CallbackUploadImage, wwwForm);*/
+
+		var width = Screen.width;
+		var height = Screen.height;
+		var tex = new Texture2D(width, height, TextureFormat.RGB24, false);
+		// Read screen contents into the texture
+		tex.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+		tex.Apply();
+		byte[] screenshot = tex.EncodeToPNG();
+
+		var wwwForm = new WWWForm();
+		wwwForm.AddBinaryData("image", screenshot, "Screenshot.png");
+
+		FB.API("me/photos", HttpMethod.POST, APICallback, wwwForm);
+
+		//FB.API("me/photos", Facebook.HttpMethod.POST, Callback, wwwForm);
+	}
+
+	public void APICallback(IGraphResult result)
+	{
+		
+	}
+
+
 	public void InitFaceBook()
 	{
 		//TODO: 로그인과 앱링크 가져오는 용도 
@@ -38,7 +77,7 @@ public class FacebookManager : NEMonoBehaviour {
 
 	void InitCallBack()
 	{
-		Debug.Log ("Fb has been init");
+		//Debug.Log ("Fb has been init");
 	}
 
 	public bool IsFacebookLogIn()
@@ -60,13 +99,12 @@ public class FacebookManager : NEMonoBehaviour {
 	{
 		if(result.Error==null)
 		{
-			Debug.Log ("FB has Logged in");	
-			ShowPicture ();
+			//Debug.Log ("FB has Logged in");	
 		}
 		else
 		{
-			Debug.Log ("Error doing login: "+result.Error);
-			Game.Instance.gameScene.CharacterRenderingOnForExitPopUp ();
+			//Debug.Log ("Error doing login: "+result.Error);
+			Game.Instance.gameScene.CreatePopUiForFacebookLoginFailed ();
 		}
 	}
 
@@ -105,7 +143,6 @@ public class FacebookManager : NEMonoBehaviour {
 	{
 		FB.AppRequest(message: "이 게 임 해 봐 ",title: "이 거 엄 청 나 다 ");
 	}
-
 	public void Share()
 	{
 		//FB.ShareLink (new System.Uri ("http://게임 주 소 "), "게임 쩔 어 용", "게임 설 명 ", new System.Uri ("pictureurl"));
@@ -113,16 +150,44 @@ public class FacebookManager : NEMonoBehaviour {
 			//첫 uri에 AppLink 나중에 들어 가야 함 
 			//두번째는 띄울 이미지 사
 			//GameObject.Find("Label").GetComponent<UILabel>().text="LogIn"; //확 인 용 
-			FB.FeedShare (string.Empty,
-				new System.Uri ("https://play.google.com/store/apps/details?id=com.mobirix.devilbreaker"), 
+	/*		FB.FeedShare (string.Empty,
+				new System.Uri ("http://http://ec2-52-78-145-253.ap-northeast-2.compute.amazonaws.com//movephp.php"), 
 				"Herope",
 				"용사가 지구를 지키며 우주로 나아간",
 				"난 "+Game.Instance.gameScene.meter.ToString("f1")+"m 올라갔어~~ 이 게임 해서 기록 깨~~",
-				new System.Uri ("http://image.rakuten.co.jp/mischief/cabinet/ss16_3/10047666.jpg"),
+				new System.Uri("https://pbs.twimg.com/profile_images/775542006151905280/umxcmrtl.jpg"),
 				string.Empty,
 				ShareCallBack
 			);
+*/
+
+			string locationUrl = "52.78.145.253/testphp.php";
+
+
+			FB.ShareLink(new System.Uri ("https://goo.gl/GBru7C"),
+				"[HEROPE]",Game.Instance.gameScene.meter.ToString("f1")+"m 올라갔다! 외줄은 내가 너보다 잘 타는 듯!"
+				,new System.Uri("https://lh3.googleusercontent.com/-tJ7nMUkGwPo/WDdySHJeflI/AAAAAAAAB3M/akVv0OdjSb0GrQVxBpsL4iAHIP8nPFa3gCL0B/s384-p-rw/icon_192.png"), ShareCallBack);
+		
+			//Application.CaptureScreenshot ("Screenshot.png");
+
+			//ScreenShot ();
+
+			//StartCoroutine (TakeScreenshot());
+		
 		}
+	}
+
+	public void ScreenShot()
+	{
+		string folderPath = Application.dataPath + "/screenshots/";
+		string fileName="HEROPE_Screenshot_"+System.DateTime.Now.ToString("s")+".png";
+
+		if(!System.IO.Directory.Exists(folderPath))
+		{
+			System.IO.Directory.CreateDirectory (folderPath);
+		}
+
+		Application.CaptureScreenshot (folderPath + fileName);
 	}
 
 	public void AppInvite()
@@ -149,20 +214,20 @@ public class FacebookManager : NEMonoBehaviour {
 	{//TODO: 나중에 share 끝 나면 다 시 렌 더 링 키 게 
 		if(result.Cancelled)
 		{
-			Debug.Log ("share cancelled");
-			Game.Instance.gameScene.CharacterRenderingOnForExitPopUp ();
+			//Debug.Log ("share cancelled");
+			Game.Instance.gameScene.CreatePopUiForFacebookShareFailed ();
 			//GameObject.Find("Label").GetComponent<UILabel>().text="Share Cancelled"; //확인용 나 중 에 삭 제 
 		}
 		else if(!string.IsNullOrEmpty(result.Error))
 		{
-			Debug.Log ("Error on share");
-			Game.Instance.gameScene.CharacterRenderingOnForExitPopUp ();
+			//Debug.Log ("Error on share");
+			Game.Instance.gameScene.CreatePopUiForFacebookShareError ();
 			//GameObject.Find("Label").GetComponent<UILabel>().text="SError on share";
 		}
 		else if(!string.IsNullOrEmpty(result.RawResult))
 		{
-			Debug.Log ("Success");
-			Game.Instance.gameScene.CharacterRenderingOnForExitPopUp ();
+			//Debug.Log ("Success");
+			Game.Instance.gameScene.CreatePopUiForFacebookShareSuccess ();
 			//GameObject.Find("Label").GetComponent<UILabel>().text="Success";
 		}
 	}
@@ -171,15 +236,15 @@ public class FacebookManager : NEMonoBehaviour {
 	{
 		if(result.Cancelled)
 		{
-			Debug.Log ("Invite cancelled");
+			//Debug.Log ("Invite cancelled");
 		}
 		else if(!string.IsNullOrEmpty(result.Error))
 		{
-			Debug.Log ("Error on Invite");
+			//Debug.Log ("Error on Invite");
 		}
 		else if(!string.IsNullOrEmpty(result.RawResult))
 		{
-			Debug.Log ("Success On Invite");
+			//Debug.Log ("Success On Invite");
 		}
 	}
 
@@ -203,17 +268,21 @@ public class FacebookManager : NEMonoBehaviour {
 	{
 		if(result.Cancelled)
 		{
-			Debug.Log ("Chalenge cancelled");
-			Game.Instance.gameScene.CharacterRenderingOnForExitPopUp ();
+			//Debug.Log ("Chalenge cancelled");
+
 		}
 		else if(!string.IsNullOrEmpty(result.Error))
 		{
-			Debug.Log ("Error on Chalenge");
-			Game.Instance.gameScene.CharacterRenderingOnForExitPopUp ();
+			//Debug.Log ("Error on Chalenge");
+
 		}
 		else if(!string.IsNullOrEmpty(result.RawResult))
 		{
-			Debug.Log ("Success On Chalenge");
+			//Debug.Log ("Success On Chalenge");
 		}
 	}
+
 }
+
+
+
